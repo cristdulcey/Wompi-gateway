@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+*.sql
+*.dump
+*.out
+*.test
+bin/
+dist/
+caddy_data/
+caddy_config/
+.DS_Store
+README.md
+docker-compose*.yml
+Caddyfile

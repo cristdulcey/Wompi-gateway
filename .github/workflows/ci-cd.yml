@@ -1,0 +1,172 @@
+name: CI/CD — Build, Push & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test & Vet (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run unit & integration tests with race detector
+        run: go test -v -race ./...
+
+  dockerhub:
+    name: Build & Push to Docker Hub
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha_tag: ${{ steps.meta.outputs.sha_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Hub credentials
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "::error::Missing DOCKERHUB_TOKEN secret. Configure it in Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME || 'cristiandulcey' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        env:
+          IMAGE_REPO: ${{ vars.DOCKERHUB_IMAGE || 'cristiandulcey/wompi-gateway' }}
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          echo "image=${IMAGE_REPO}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tags=${IMAGE_REPO}:latest,${IMAGE_REPO}:${GITHUB_SHA},${IMAGE_REPO}:${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push multi-arch Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      - name: Write publish summary
+        run: |
+          {
+            echo "### Published Docker Image"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy to VPS (Optional)
+    needs: dockerhub
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (vars.VPS_HOST != '' || secrets.VPS_HOST != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy new image over SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST || vars.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER || vars.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT || vars.VPS_PORT || '22' }}
+          VPS_PATH: ${{ secrets.VPS_PATH || vars.VPS_PATH }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          DOCKER_IMAGE: ${{ needs.dockerhub.outputs.image }}
+          IMAGE_TAG: ${{ needs.dockerhub.outputs.sha_tag }}
+          COMPOSE_FILE: ${{ vars.VPS_COMPOSE || 'docker-compose.prod.yml' }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?Missing VPS_HOST}"
+          : "${VPS_USER:?Missing VPS_USER}"
+          : "${VPS_PATH:?Missing VPS_PATH}"
+          : "${VPS_SSH_KEY:?Missing VPS_SSH_KEY}"
+
+          install -d -m 700 "$RUNNER_TEMP/ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$RUNNER_TEMP/ssh/id_key"
+          chmod 600 "$RUNNER_TEMP/ssh/id_key"
+
+          SSH_OPTS="-i $RUNNER_TEMP/ssh/id_key -p $VPS_PORT -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=20"
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
+            chmod 600 "$RUNNER_TEMP/ssh/known_hosts"
+            SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts -o StrictHostKeyChecking=yes"
+          else
+            SSH_OPTS="$SSH_OPTS -o StrictHostKeyChecking=accept-new"
+          fi
+
+          scp -q $SSH_OPTS docker-compose.prod.yml Caddyfile "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/"
+
+          {
+            printf 'VPS_PATH=%q DOCKER_IMAGE=%q IMAGE_TAG=%q COMPOSE_FILE=%q\n' \
+              "$VPS_PATH" "$DOCKER_IMAGE" "$IMAGE_TAG" "$COMPOSE_FILE"
+            cat <<'EOF'
+          set -euo pipefail
+          cd "$VPS_PATH"
+
+          if grep -q '^[[:space:]]*IMAGE_TAG=' .env; then
+            sed -i "s|^[[:space:]]*IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" .env
+          else
+            printf '\nIMAGE_TAG=%s\n' "$IMAGE_TAG" >> .env
+          fi
+
+          if grep -q '^[[:space:]]*DOCKER_IMAGE=' .env; then
+            sed -i "s|^[[:space:]]*DOCKER_IMAGE=.*|DOCKER_IMAGE=${DOCKER_IMAGE}|" .env
+          else
+            printf 'DOCKER_IMAGE=%s\n' "$DOCKER_IMAGE" >> .env
+          fi
+
+          docker compose -f "$COMPOSE_FILE" pull gateway
+          docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+          docker image prune -f >/dev/null 2>&1 || true
+          EOF
+          } | ssh $SSH_OPTS "${VPS_USER}@${VPS_HOST}" 'umask 077; tmp=$(mktemp /tmp/deploy-wompi.XXXXXX); cat > "$tmp"; bash "$tmp" </dev/null; rc=$?; rm -f "$tmp"; exit $rc'
