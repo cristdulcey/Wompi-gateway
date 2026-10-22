@@ -1,0 +1,9 @@
+.env
+bin/
+dist/
+wompi-gateway
+*.out
+*.test
+.DS_Store
+backup*.sql
+*dump*.sql
