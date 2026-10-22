@@ -688,31 +688,79 @@
       max-height: 280px;
     }
 
-    /* Form Grid inside CRUD views */
-    .crud-layout {
-      display: grid;
-      grid-template-columns: 360px minmax(0, 1fr);
-      gap: 20px;
-      align-items: start;
+    /* Modal Dialogs (Create / Edit Popups) */
+    dialog.modal-dialog {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      width: min(540px, calc(100vw - 32px));
+      max-height: calc(100vh - 48px);
+      margin: auto;
+      padding: 20px;
+      overflow-y: auto;
     }
 
-    @media (max-width: 980px) {
-      .crud-layout {
-        grid-template-columns: 1fr;
-      }
+    dialog.modal-dialog::backdrop {
+      background: rgba(5, 8, 15, 0.76);
+      backdrop-filter: blur(3px);
     }
 
-    .form-stack {
-      padding: 18px;
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-body {
       display: flex;
       flex-direction: column;
       gap: 14px;
+    }
+
+    .modal-footer {
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
     }
 
     .form-row-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 560px) {
+      .form-row-2,
+      .form-row-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .action-group {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
     }
 
     /* Instructive Empty States */
@@ -962,192 +1010,256 @@
 
       <!-- 2. REFERENCE PREFIX ROUTES -->
       <section id="panel-routes" class="panel">
-        <div class="crud-layout">
-          <form class="surface-box" onsubmit="event.preventDefault(); createRoute();">
-            <div class="surface-header">
-              <div>
-                <h2 class="surface-title">New Prefix Route Rule</h2>
-                <p class="surface-subtitle">Longest matching prefix wins first, then priority</p>
-              </div>
+        <div class="surface-box">
+          <div class="surface-header">
+            <div>
+              <h2 class="surface-title">Active Routing Table</h2>
+              <p class="surface-subtitle">Evaluated in order of longest matching prefix first, then priority</p>
             </div>
-            <div class="form-stack">
-              <div>
-                <label for="routeAccountSelect">Wompi Account</label>
-                <select id="routeAccountSelect" required></select>
-              </div>
-              <div>
-                <label for="routeCompanySelect">Destination Company</label>
-                <select id="routeCompanySelect" required></select>
-              </div>
-              <div>
-                <label for="routeName">Rule Label</label>
-                <input type="text" id="routeName" placeholder="e.g. Optimax Subscriptions" required />
-              </div>
-              <div>
-                <label for="routePrefix">Transaction Reference Prefix</label>
-                <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or mw-sub- or *" />
-                <span class="field-hint">Use <code>sub-</code> for Optimax, <code>mw-sub-</code> for Mr. Waiters, or <code>*</code> as fallback.</span>
-              </div>
-              <div>
-                <label for="routeTargetUrl">Destination Webhook URL</label>
-                <input type="url" id="routeTargetUrl" class="mono-input" placeholder="https://api.example.com/webhooks/wompi/" required />
-              </div>
-              <div class="form-row-2">
-                <div>
-                  <label for="routePriority">Priority</label>
-                  <input type="number" id="routePriority" class="num-col" value="10" required />
-                </div>
-                <div>
-                  <label for="routeMaxRetries">Max Retries</label>
-                  <input type="number" id="routeMaxRetries" class="num-col" value="5" min="1" max="20" required />
-                </div>
-              </div>
-              <button type="submit" id="createRouteBtn">Create Route Rule</button>
-            </div>
-          </form>
-
-          <div class="surface-box">
-            <div class="surface-header">
-              <div>
-                <h2 class="surface-title">Active Routing Table</h2>
-                <p class="surface-subtitle">Evaluated in order of prefix specificity and priority</p>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Rule Label</th>
-                    <th>Company</th>
-                    <th>Reference Prefix</th>
-                    <th>Target Webhook URL</th>
-                    <th>Priority</th>
-                    <th>Retries</th>
-                    <th style="text-align: right;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="routesTableBody"></tbody>
-              </table>
-            </div>
+            <button type="button" onclick="openRouteModal()">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              New Route Rule
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rule Label</th>
+                  <th>Wompi Account</th>
+                  <th>Company</th>
+                  <th>Reference Prefix</th>
+                  <th>Target Webhook URL</th>
+                  <th>Priority</th>
+                  <th>Retries / Timeout</th>
+                  <th>State</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="routesTableBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
 
       <!-- 3. WOMPI ACCOUNTS -->
       <section id="panel-accounts" class="panel">
-        <div class="crud-layout">
-          <form class="surface-box" onsubmit="event.preventDefault(); createAccount();">
-            <div class="surface-header">
-              <div>
-                <h2 class="surface-title">Register Wompi Account</h2>
-                <p class="surface-subtitle">Each account generates a dedicated ingress URL</p>
-              </div>
+        <div class="surface-box">
+          <div class="surface-header">
+            <div>
+              <h2 class="surface-title">Configured Wompi Accounts</h2>
+              <p class="surface-subtitle">Copy the Ingress URL into your Wompi Merchant Dashboard</p>
             </div>
-            <div class="form-stack">
-              <div>
-                <label for="accName">Account Label</label>
-                <input type="text" id="accName" placeholder="e.g. Loducode Main Production" required />
-              </div>
-              <div class="form-row-2">
-                <div>
-                  <label for="accSlug">Ingress URL Slug</label>
-                  <input type="text" id="accSlug" class="mono-input" placeholder="main-prod" required />
-                </div>
-                <div>
-                  <label for="accEnv">Environment</label>
-                  <select id="accEnv">
-                    <option value="prod">Production (prod)</option>
-                    <option value="test">Sandbox (test)</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label for="accSecret">Wompi Events Secret</label>
-                <input type="password" id="accSecret" class="mono-input" placeholder="prod_events_..." required />
-                <span class="field-hint">Used to verify <code>X-Event-Checksum</code> in constant time. Redacted after save.</span>
-              </div>
-              <button type="submit" id="createAccountBtn">Register Wompi Account</button>
-            </div>
-          </form>
-
-          <div class="surface-box">
-            <div class="surface-header">
-              <div>
-                <h2 class="surface-title">Configured Wompi Accounts</h2>
-                <p class="surface-subtitle">Copy the Ingress URL into your Wompi Merchant Dashboard</p>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Account Label</th>
-                    <th>Slug</th>
-                    <th>Env</th>
-                    <th>Webhook Ingress URL</th>
-                    <th>State</th>
-                    <th style="text-align: right;">Copy URL</th>
-                  </tr>
-                </thead>
-                <tbody id="accountsTableBody"></tbody>
-              </table>
-            </div>
+            <button type="button" onclick="openAccountModal()">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Register Wompi Account
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account Label</th>
+                  <th>Slug</th>
+                  <th>Env</th>
+                  <th>Webhook Ingress URL</th>
+                  <th>State</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="accountsTableBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
 
       <!-- 4. COMPANIES -->
       <section id="panel-companies" class="panel">
-        <div class="crud-layout">
-          <form class="surface-box" onsubmit="event.preventDefault(); createCompany();">
-            <div class="surface-header">
-              <div>
-                <h2 class="surface-title">Register Company / Application</h2>
-                <p class="surface-subtitle">Group downstream webhook destinations by project</p>
-              </div>
+        <div class="surface-box">
+          <div class="surface-header">
+            <div>
+              <h2 class="surface-title">Registered Companies</h2>
+              <p class="surface-subtitle">Downstream applications receiving routed Wompi events</p>
             </div>
-            <div class="form-stack">
-              <div>
-                <label for="compName">Company or Project Name</label>
-                <input type="text" id="compName" placeholder="e.g. Optimax" required />
-              </div>
-              <div>
-                <label for="compSlug">Identifier Slug</label>
-                <input type="text" id="compSlug" class="mono-input" placeholder="optimax" required />
-              </div>
-              <div>
-                <label for="compDesc">Notes / Environment</label>
-                <input type="text" id="compDesc" placeholder="Optical ERP subscription backend" />
-              </div>
-              <button type="submit" id="createCompanyBtn">Register Company</button>
-            </div>
-          </form>
-
-          <div class="surface-box">
-            <div class="surface-header">
-              <div>
-                <h2 class="surface-title">Registered Companies</h2>
-                <p class="surface-subtitle">Downstream applications receiving routed Wompi events</p>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Company / Project</th>
-                    <th>Slug</th>
-                    <th>Notes</th>
-                    <th>State</th>
-                  </tr>
-                </thead>
-                <tbody id="companiesTableBody"></tbody>
-              </table>
-            </div>
+            <button type="button" onclick="openCompanyModal()">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Register Company
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Company / Project</th>
+                  <th>Slug</th>
+                  <th>Notes</th>
+                  <th>State</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="companiesTableBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
     </div>
   </main>
+
+  <!-- POPUP MODAL: CREATE / EDIT ROUTE RULE -->
+  <dialog id="routeModal" class="modal-dialog" aria-labelledby="routeModalTitle" onclick="handleBackdropClick(event, 'routeModal')">
+    <form class="modal-form" onsubmit="event.preventDefault(); saveRoute();">
+      <input type="hidden" id="routeEditId" value="" />
+      <div class="modal-header">
+        <div>
+          <h2 class="surface-title" id="routeModalTitle">New Prefix Route Rule</h2>
+          <p class="surface-subtitle" id="routeModalSubtitle">Longest matching prefix wins first, then priority</p>
+        </div>
+        <button type="button" class="btn-secondary btn-sm" onclick="closeModal('routeModal')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row-2">
+          <div>
+            <label for="routeAccountSelect">Wompi Account</label>
+            <select id="routeAccountSelect" required></select>
+          </div>
+          <div>
+            <label for="routeCompanySelect">Destination Company</label>
+            <select id="routeCompanySelect" required></select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div>
+            <label for="routeName">Rule Label</label>
+            <input type="text" id="routeName" placeholder="e.g. Optimax Subscriptions" required />
+          </div>
+          <div>
+            <label for="routeActive">Rule State</label>
+            <select id="routeActive">
+              <option value="true">Active (Routing Enabled)</option>
+              <option value="false">Inactive (Paused)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="routePrefix">Transaction Reference Prefix</label>
+          <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or mw-sub- or *" />
+          <span class="field-hint">Use <code>sub-</code> for Optimax, <code>mw-sub-</code> for Mr. Waiters, or <code>*</code> as fallback.</span>
+        </div>
+        <div>
+          <label for="routeTargetUrl">Destination Webhook URL</label>
+          <input type="url" id="routeTargetUrl" class="mono-input" placeholder="https://api.example.com/webhooks/wompi/" required />
+        </div>
+        <div class="form-row-3">
+          <div>
+            <label for="routePriority">Priority</label>
+            <input type="number" id="routePriority" class="num-col" value="10" required />
+          </div>
+          <div>
+            <label for="routeMaxRetries">Max Retries</label>
+            <input type="number" id="routeMaxRetries" class="num-col" value="5" min="1" max="20" required />
+          </div>
+          <div>
+            <label for="routeTimeoutSeconds">Timeout (sec)</label>
+            <input type="number" id="routeTimeoutSeconds" class="num-col" value="15" min="1" max="120" required />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('routeModal')">Cancel</button>
+        <button type="submit" id="saveRouteBtn">Save Route Rule</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- POPUP MODAL: CREATE / EDIT WOMPI ACCOUNT -->
+  <dialog id="accountModal" class="modal-dialog" aria-labelledby="accountModalTitle" onclick="handleBackdropClick(event, 'accountModal')">
+    <form class="modal-form" onsubmit="event.preventDefault(); saveAccount();">
+      <input type="hidden" id="accEditId" value="" />
+      <div class="modal-header">
+        <div>
+          <h2 class="surface-title" id="accountModalTitle">Register Wompi Account</h2>
+          <p class="surface-subtitle" id="accountModalSubtitle">Each account generates a dedicated ingress URL</p>
+        </div>
+        <button type="button" class="btn-secondary btn-sm" onclick="closeModal('accountModal')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <label for="accName">Account Label</label>
+          <input type="text" id="accName" placeholder="e.g. Loducode Main Production" required />
+        </div>
+        <div class="form-row-2">
+          <div>
+            <label for="accSlug">Ingress URL Slug</label>
+            <input type="text" id="accSlug" class="mono-input" placeholder="main-prod" required />
+          </div>
+          <div>
+            <label for="accEnv">Environment</label>
+            <select id="accEnv">
+              <option value="prod">Production (prod)</option>
+              <option value="test">Sandbox (test)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="accSecret">Wompi Events Secret</label>
+          <input type="password" id="accSecret" class="mono-input" placeholder="prod_events_..." />
+          <span class="field-hint" id="accSecretHint">Used to verify <code>X-Event-Checksum</code> in constant time. Redacted after save.</span>
+        </div>
+        <div>
+          <label for="accActive">Account State</label>
+          <select id="accActive">
+            <option value="true">Active (Accepting Webhooks)</option>
+            <option value="false">Inactive (Rejecting Webhooks)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('accountModal')">Cancel</button>
+        <button type="submit" id="saveAccountBtn">Save Wompi Account</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- POPUP MODAL: CREATE / EDIT COMPANY -->
+  <dialog id="companyModal" class="modal-dialog" aria-labelledby="companyModalTitle" onclick="handleBackdropClick(event, 'companyModal')">
+    <form class="modal-form" onsubmit="event.preventDefault(); saveCompany();">
+      <input type="hidden" id="compEditId" value="" />
+      <div class="modal-header">
+        <div>
+          <h2 class="surface-title" id="companyModalTitle">Register Company / Application</h2>
+          <p class="surface-subtitle" id="companyModalSubtitle">Group downstream webhook destinations by project</p>
+        </div>
+        <button type="button" class="btn-secondary btn-sm" onclick="closeModal('companyModal')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <label for="compName">Company or Project Name</label>
+          <input type="text" id="compName" placeholder="e.g. Optimax" required />
+        </div>
+        <div class="form-row-2">
+          <div>
+            <label for="compSlug">Identifier Slug</label>
+            <input type="text" id="compSlug" class="mono-input" placeholder="optimax" required />
+          </div>
+          <div>
+            <label for="compActive">Company State</label>
+            <select id="compActive">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="compDesc">Notes / Environment</label>
+          <input type="text" id="compDesc" placeholder="Optical ERP subscription backend" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('companyModal')">Cancel</button>
+        <button type="submit" id="saveCompanyBtn">Save Company</button>
+      </div>
+    </form>
+  </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1163,6 +1275,47 @@
     let isAuthenticated = false;
     let selectedEventId = null;
     let lastRawPayloadText = '';
+    let companiesCache = [];
+    let accountsCache = [];
+    let routesCache = [];
+
+    function openModal(dialogId, firstInputId) {
+      const dlg = document.getElementById(dialogId);
+      if (!dlg) return;
+      if (typeof dlg.showModal === 'function') {
+        if (!dlg.open) dlg.showModal();
+      } else {
+        dlg.setAttribute('open', 'open');
+      }
+      if (firstInputId) {
+        const el = document.getElementById(firstInputId);
+        if (el) setTimeout(() => el.focus(), 20);
+      }
+    }
+
+    function closeModal(dialogId) {
+      const dlg = document.getElementById(dialogId);
+      if (!dlg) return;
+      if (typeof dlg.close === 'function' && dlg.open) {
+        dlg.close();
+      } else {
+        dlg.removeAttribute('open');
+      }
+    }
+
+    function handleBackdropClick(event, dialogId) {
+      const dlg = document.getElementById(dialogId);
+      if (!dlg || event.target !== dlg) return;
+      const rect = dlg.getBoundingClientRect();
+      const clickedInside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!clickedInside) {
+        closeModal(dialogId);
+      }
+    }
 
     function setAuthenticatedUI(authenticated) {
       isAuthenticated = authenticated;
@@ -1209,6 +1362,9 @@
         });
       } catch (_) {}
       closeInspector();
+      closeModal('routeModal');
+      closeModal('accountModal');
+      closeModal('companyModal');
       setAuthenticatedUI(false);
       showToast('Session closed');
     }
@@ -1280,16 +1436,18 @@
     async function loadCompanies() {
       const res = await apiFetch('/api/v1/companies');
       const list = res.data || [];
+      companiesCache = list;
       const tbody = document.getElementById('companiesTableBody');
       const sel = document.getElementById('routeCompanySelect');
 
       if (list.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="4">
+            <td colspan="5">
               <div class="empty-state">
                 <h4>No companies registered yet</h4>
-                <p>Register each project or tenant (such as Optimax or Mr. Waiters) on the left so you can assign reference prefix routes to them.</p>
+                <p>Register each project or tenant (such as Optimax or Mr. Waiters) so you can assign reference prefix routes to them.</p>
+                <button type="button" onclick="openCompanyModal()">Register Company</button>
               </div>
             </td>
           </tr>`;
@@ -1300,6 +1458,11 @@
             <td><code>${escapeHtml(c.slug)}</code></td>
             <td style="color: var(--text-secondary);">${escapeHtml(c.description || '—')}</td>
             <td><span class="status-badge ${c.active ? 'status-delivered' : 'status-dead_letter'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+            <td style="text-align: right;">
+              <div class="action-group">
+                <button type="button" class="btn-secondary btn-sm" onclick="openCompanyModal('${c.id}')">Edit</button>
+              </div>
+            </td>
           </tr>
         `).join('');
       }
@@ -1308,22 +1471,43 @@
         list.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.slug)})</option>`).join('');
     }
 
-    async function createCompany() {
-      const btn = document.getElementById('createCompanyBtn');
+    function openCompanyModal(companyId = '') {
+      const existing = companyId ? companiesCache.find(c => c.id === companyId) : null;
+      document.getElementById('compEditId').value = existing ? existing.id : '';
+      document.getElementById('companyModalTitle').textContent = existing ? 'Edit Company / Application' : 'Register Company / Application';
+      document.getElementById('saveCompanyBtn').textContent = existing ? 'Update Company' : 'Register Company';
+      document.getElementById('compName').value = existing ? existing.name : '';
+      document.getElementById('compSlug').value = existing ? existing.slug : '';
+      document.getElementById('compDesc').value = existing ? (existing.description || '') : '';
+      document.getElementById('compActive').value = existing ? String(Boolean(existing.active)) : 'true';
+      openModal('companyModal', 'compName');
+    }
+
+    async function saveCompany() {
+      const btn = document.getElementById('saveCompanyBtn');
+      const editId = document.getElementById('compEditId').value.trim();
       btn.disabled = true;
       try {
-        await apiFetch('/api/v1/companies', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: document.getElementById('compName').value,
-            slug: document.getElementById('compSlug').value,
-            description: document.getElementById('compDesc').value
-          })
-        });
-        document.getElementById('compName').value = '';
-        document.getElementById('compSlug').value = '';
-        document.getElementById('compDesc').value = '';
-        showToast('Company registered');
+        const payload = {
+          name: document.getElementById('compName').value,
+          slug: document.getElementById('compSlug').value,
+          description: document.getElementById('compDesc').value,
+          active: document.getElementById('compActive').value === 'true'
+        };
+        if (editId) {
+          await apiFetch('/api/v1/companies/' + editId, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+          });
+          showToast('Company updated');
+        } else {
+          await apiFetch('/api/v1/companies', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          showToast('Company registered');
+        }
+        closeModal('companyModal');
         await refreshAll();
       } catch (e) {
         showToast(e.message, true);
@@ -1335,6 +1519,7 @@
     async function loadAccounts() {
       const res = await apiFetch('/api/v1/accounts');
       const list = res.data || [];
+      accountsCache = list;
       const tbody = document.getElementById('accountsTableBody');
       const sel = document.getElementById('routeAccountSelect');
       const origin = window.location.origin;
@@ -1345,7 +1530,8 @@
             <td colspan="6">
               <div class="empty-state">
                 <h4>No Wompi accounts configured</h4>
-                <p>Register a Wompi account with its Events Secret on the left to generate your dedicated webhook ingress endpoint.</p>
+                <p>Register a Wompi account with its Events Secret to generate your dedicated webhook ingress endpoint.</p>
+                <button type="button" onclick="openAccountModal()">Register Wompi Account</button>
               </div>
             </td>
           </tr>`;
@@ -1360,7 +1546,10 @@
               <td><code>${escapeHtml(fullUrl)}</code></td>
               <td><span class="status-badge ${a.active ? 'status-delivered' : 'status-dead_letter'}">${a.active ? 'Active' : 'Inactive'}</span></td>
               <td style="text-align: right;">
-                <button type="button" class="btn-secondary btn-sm" onclick="copyText('${escapeHtml(fullUrl)}', 'Ingress URL copied')">Copy URL</button>
+                <div class="action-group">
+                  <button type="button" class="btn-secondary btn-sm" onclick="copyText('${escapeHtml(fullUrl)}', 'Ingress URL copied')">Copy URL</button>
+                  <button type="button" class="btn-secondary btn-sm" onclick="openAccountModal('${a.id}')">Edit</button>
+                </div>
               </td>
             </tr>
           `;
@@ -1371,23 +1560,60 @@
         list.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.slug)})</option>`).join('');
     }
 
-    async function createAccount() {
-      const btn = document.getElementById('createAccountBtn');
+    function openAccountModal(accountId = '') {
+      const existing = accountId ? accountsCache.find(a => a.id === accountId) : null;
+      document.getElementById('accEditId').value = existing ? existing.id : '';
+      document.getElementById('accountModalTitle').textContent = existing ? 'Edit Wompi Account' : 'Register Wompi Account';
+      document.getElementById('saveAccountBtn').textContent = existing ? 'Update Wompi Account' : 'Register Wompi Account';
+      document.getElementById('accName').value = existing ? existing.name : '';
+      document.getElementById('accSlug').value = existing ? existing.slug : '';
+      document.getElementById('accEnv').value = existing ? existing.environment : 'prod';
+      document.getElementById('accActive').value = existing ? String(Boolean(existing.active)) : 'true';
+
+      const secretInput = document.getElementById('accSecret');
+      const secretHint = document.getElementById('accSecretHint');
+      secretInput.value = '';
+      if (existing) {
+        secretInput.required = false;
+        secretInput.placeholder = 'Leave blank to keep existing secret...';
+        secretHint.innerHTML = 'Leave blank to preserve the current <code>events_secret</code>, or enter a new secret to rotate it.';
+      } else {
+        secretInput.required = true;
+        secretInput.placeholder = 'prod_events_...';
+        secretHint.innerHTML = 'Used to verify <code>X-Event-Checksum</code> in constant time. Redacted after save.';
+      }
+      openModal('accountModal', 'accName');
+    }
+
+    async function saveAccount() {
+      const btn = document.getElementById('saveAccountBtn');
+      const editId = document.getElementById('accEditId').value.trim();
       btn.disabled = true;
       try {
-        await apiFetch('/api/v1/accounts', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: document.getElementById('accName').value,
-            slug: document.getElementById('accSlug').value,
-            environment: document.getElementById('accEnv').value,
-            events_secret: document.getElementById('accSecret').value
-          })
-        });
-        document.getElementById('accName').value = '';
-        document.getElementById('accSlug').value = '';
-        document.getElementById('accSecret').value = '';
-        showToast('Wompi account registered');
+        const secretVal = document.getElementById('accSecret').value.trim();
+        const payload = {
+          name: document.getElementById('accName').value,
+          slug: document.getElementById('accSlug').value,
+          environment: document.getElementById('accEnv').value,
+          active: document.getElementById('accActive').value === 'true'
+        };
+        if (!editId || secretVal !== '') {
+          payload.events_secret = secretVal;
+        }
+        if (editId) {
+          await apiFetch('/api/v1/accounts/' + editId, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+          });
+          showToast('Wompi account updated');
+        } else {
+          await apiFetch('/api/v1/accounts', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          showToast('Wompi account registered');
+        }
+        closeModal('accountModal');
         await refreshAll();
       } catch (e) {
         showToast(e.message, true);
@@ -1399,61 +1625,113 @@
     async function loadRoutes() {
       const res = await apiFetch('/api/v1/routes');
       const list = res.data || [];
+      routesCache = list;
       const tbody = document.getElementById('routesTableBody');
 
       if (list.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7">
+            <td colspan="9">
               <div class="empty-state">
                 <h4>No reference prefix routes defined</h4>
                 <p>Map transaction prefixes like <code>sub-</code> (Optimax) or <code>mw-sub-</code> (Mr. Waiters) to their target webhook endpoints.</p>
+                <button type="button" onclick="openRouteModal()">New Route Rule</button>
               </div>
             </td>
           </tr>`;
         return;
       }
 
-      tbody.innerHTML = list.map(r => `
-        <tr>
-          <td><strong>${escapeHtml(r.name)}</strong></td>
-          <td>${escapeHtml(r.company_name || r.company_id)}</td>
-          <td><code>${escapeHtml(r.reference_prefix || '* (Catch-All)')}</code></td>
-          <td><code>${escapeHtml(r.target_url)}</code></td>
-          <td class="num-col">${r.priority}</td>
-          <td class="num-col">${r.max_retries}</td>
-          <td style="text-align: right;">
-            <button type="button" class="btn-danger btn-sm" onclick="deleteRoute('${r.id}')">Remove</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = list.map(r => {
+        const acc = accountsCache.find(a => a.id === r.wompi_account_id);
+        const accLabel = acc ? `${acc.name} (${acc.slug})` : r.wompi_account_id;
+        return `
+          <tr>
+            <td><strong>${escapeHtml(r.name)}</strong></td>
+            <td><code>${escapeHtml(accLabel)}</code></td>
+            <td>${escapeHtml(r.company_name || r.company_id)}</td>
+            <td><code>${escapeHtml(r.reference_prefix || '* (Catch-All)')}</code></td>
+            <td><code>${escapeHtml(r.target_url)}</code></td>
+            <td class="num-col">${r.priority}</td>
+            <td class="num-col">${r.max_retries} / ${r.timeout_seconds || 15}s</td>
+            <td><span class="status-badge ${r.active ? 'status-delivered' : 'status-dead_letter'}">${r.active ? 'Active' : 'Inactive'}</span></td>
+            <td style="text-align: right;">
+              <div class="action-group">
+                <button type="button" class="btn-secondary btn-sm" onclick="toggleRouteActive('${r.id}', ${!r.active})">${r.active ? 'Deactivate' : 'Activate'}</button>
+                <button type="button" class="btn-secondary btn-sm" onclick="openRouteModal('${r.id}')">Edit</button>
+                <button type="button" class="btn-danger btn-sm" onclick="deleteRoute('${r.id}')">Remove</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    async function createRoute() {
-      const btn = document.getElementById('createRouteBtn');
+    function openRouteModal(routeId = '') {
+      const existing = routeId ? routesCache.find(r => r.id === routeId) : null;
+      document.getElementById('routeEditId').value = existing ? existing.id : '';
+      document.getElementById('routeModalTitle').textContent = existing ? 'Edit Prefix Route Rule' : 'New Prefix Route Rule';
+      document.getElementById('saveRouteBtn').textContent = existing ? 'Update Route Rule' : 'Create Route Rule';
+      document.getElementById('routeAccountSelect').value = existing ? existing.wompi_account_id : (accountsCache[0] ? accountsCache[0].id : '');
+      document.getElementById('routeCompanySelect').value = existing ? existing.company_id : (companiesCache[0] ? companiesCache[0].id : '');
+      document.getElementById('routeName').value = existing ? existing.name : '';
+      document.getElementById('routePrefix').value = existing ? (existing.reference_prefix || '') : '';
+      document.getElementById('routeTargetUrl').value = existing ? existing.target_url : '';
+      document.getElementById('routePriority').value = existing ? existing.priority : 10;
+      document.getElementById('routeMaxRetries').value = existing ? existing.max_retries : 5;
+      document.getElementById('routeTimeoutSeconds').value = existing ? (existing.timeout_seconds || 15) : 15;
+      document.getElementById('routeActive').value = existing ? String(Boolean(existing.active)) : 'true';
+      openModal('routeModal', 'routeName');
+    }
+
+    async function saveRoute() {
+      const btn = document.getElementById('saveRouteBtn');
+      const editId = document.getElementById('routeEditId').value.trim();
       btn.disabled = true;
       try {
-        await apiFetch('/api/v1/routes', {
-          method: 'POST',
-          body: JSON.stringify({
-            wompi_account_id: document.getElementById('routeAccountSelect').value,
-            company_id: document.getElementById('routeCompanySelect').value,
-            name: document.getElementById('routeName').value,
-            reference_prefix: document.getElementById('routePrefix').value,
-            target_url: document.getElementById('routeTargetUrl').value,
-            priority: parseInt(document.getElementById('routePriority').value || '10', 10),
-            max_retries: parseInt(document.getElementById('routeMaxRetries').value || '5', 10)
-          })
-        });
-        document.getElementById('routeName').value = '';
-        document.getElementById('routePrefix').value = '';
-        document.getElementById('routeTargetUrl').value = '';
-        showToast('Prefix route rule created');
+        const payload = {
+          wompi_account_id: document.getElementById('routeAccountSelect').value,
+          company_id: document.getElementById('routeCompanySelect').value,
+          name: document.getElementById('routeName').value,
+          reference_prefix: document.getElementById('routePrefix').value,
+          target_url: document.getElementById('routeTargetUrl').value,
+          priority: parseInt(document.getElementById('routePriority').value || '10', 10),
+          max_retries: parseInt(document.getElementById('routeMaxRetries').value || '5', 10),
+          timeout_seconds: parseInt(document.getElementById('routeTimeoutSeconds').value || '15', 10),
+          active: document.getElementById('routeActive').value === 'true'
+        };
+        if (editId) {
+          await apiFetch('/api/v1/routes/' + editId, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+          });
+          showToast('Prefix route rule updated');
+        } else {
+          await apiFetch('/api/v1/routes', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          showToast('Prefix route rule created');
+        }
+        closeModal('routeModal');
         await refreshAll();
       } catch (e) {
         showToast(e.message, true);
       } finally {
         btn.disabled = false;
+      }
+    }
+
+    async function toggleRouteActive(id, nextActive) {
+      try {
+        await apiFetch('/api/v1/routes/' + id, {
+          method: 'PATCH',
+          body: JSON.stringify({ active: Boolean(nextActive) })
+        });
+        showToast(nextActive ? 'Prefix route activated' : 'Prefix route deactivated');
+        await refreshAll();
+      } catch (e) {
+        showToast(e.message, true);
       }
     }
 
@@ -1642,7 +1920,8 @@
 
     async function refreshAll() {
       if (!isAuthenticated) return;
-      await Promise.all([loadStats(), loadCompanies(), loadAccounts(), loadRoutes(), loadEvents()]);
+      await Promise.all([loadStats(), loadCompanies(), loadAccounts(), loadEvents()]);
+      await loadRoutes();
     }
 
     async function checkExistingSession() {

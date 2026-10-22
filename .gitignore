@@ -7,3 +7,4 @@ wompi-gateway
 .DS_Store
 backup*.sql
 *dump*.sql
+.archify/

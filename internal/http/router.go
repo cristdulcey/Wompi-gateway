@@ -53,14 +53,17 @@ func NewRouter(repo domain.Repository, disp *dispatcher.Dispatcher, adminAPIKey 
 		v1.GET("/companies", h.ListCompanies)
 		v1.POST("/companies", h.CreateCompany)
 		v1.PATCH("/companies/:id", h.UpdateCompany)
+		v1.PUT("/companies/:id", h.UpdateCompany)
 
 		v1.GET("/accounts", h.ListAccounts)
 		v1.POST("/accounts", h.CreateAccount)
 		v1.PATCH("/accounts/:id", h.UpdateAccount)
+		v1.PUT("/accounts/:id", h.UpdateAccount)
 
 		v1.GET("/routes", h.ListRoutes)
 		v1.POST("/routes", h.CreateRoute)
 		v1.PATCH("/routes/:id", h.UpdateRoute)
+		v1.PUT("/routes/:id", h.UpdateRoute)
 		v1.DELETE("/routes/:id", h.DeleteRoute)
 
 		v1.GET("/events", h.ListEvents)
