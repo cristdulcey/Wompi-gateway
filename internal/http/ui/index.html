@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wompi Webhook Gateway — Operations Console</title>
+  <style>
+    :root {
+      --bg-canvas: #090d16;
+      --bg-surface: #0f1624;
+      --bg-elevated: #151e31;
+      --bg-subtle: #11192b;
+      --bg-hover: #1a253d;
+      --bg-selected: #172544;
+      --bg-input: #070b12;
+
+      --border-subtle: #1e2a42;
+      --border-default: #273654;
+      --border-strong: #384d75;
+
+      --text-primary: #f1f5f9;
+      --text-secondary: #b4c2d8;
+      --text-muted: #8699b5;
+
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-active: #1e40af;
+      --accent-tint: rgba(37, 99, 235, 0.16);
+
+      --status-delivered-fg: #34d399;
+      --status-delivered-bg: rgba(16, 185, 129, 0.14);
+      --status-delivered-bd: rgba(52, 211, 153, 0.32);
+
+      --status-pending-fg: #60a5fa;
+      --status-pending-bg: rgba(59, 130, 246, 0.14);
+      --status-pending-bd: rgba(96, 165, 250, 0.32);
+
+      --status-retrying-fg: #fbbf24;
+      --status-retrying-bg: rgba(245, 158, 11, 0.14);
+      --status-retrying-bd: rgba(251, 191, 36, 0.32);
+
+      --status-dead-fg: #f87171;
+      --status-dead-bg: rgba(239, 68, 68, 0.14);
+      --status-dead-bd: rgba(248, 113, 113, 0.34);
+
+      --status-unrouted-fg: #c084fc;
+      --status-unrouted-bg: rgba(168, 85, 247, 0.14);
+      --status-unrouted-bd: rgba(192, 132, 252, 0.32);
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+      --shadow-sm: 0 2px 6px rgba(3, 6, 14, 0.45);
+      --shadow-md: 0 8px 24px rgba(3, 6, 14, 0.6);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    ::selection {
+      background: rgba(59, 130, 246, 0.32);
+      color: var(--text-primary);
+    }
+
+    html {
+      color-scheme: dark;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      caret-color: var(--accent);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-canvas);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-default);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-strong);
+    }
+
+    /* Top App Header */
+    .topbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-tint);
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--status-pending-fg);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding-left: 12px;
+      border-left: 1px solid var(--border-subtle);
+    }
+
+    .auth-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-inline-form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .session-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: var(--status-delivered-bg);
+      color: var(--status-delivered-fg);
+      border: 1px solid var(--status-delivered-bd);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Navigation & Telemetry Subbar */
+    .subbar {
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-tab {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      padding: 12px 14px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .nav-tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* High-density Telemetry Ribbon (Replaces bloated hero cards) */
+    .telemetry-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 0;
+      flex-wrap: wrap;
+    }
+
+    .metric-pill {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+
+    .metric-pill:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .metric-pill.active-filter {
+      border-color: var(--accent);
+      background: var(--bg-selected);
+      color: var(--text-primary);
+    }
+
+    .metric-count {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+    }
+
+    /* Controls: Inputs, Selects, Buttons */
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+
+    .field-hint {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      padding: 7px 11px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    input.mono-input {
+      font-family: var(--font-mono);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    input:hover, select:hover, textarea:hover {
+      border-color: var(--border-strong);
+    }
+
+    input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      border-color: var(--accent);
+    }
+
+    button {
+      background: var(--accent);
+      color: #ffffff;
+      border: 1px solid transparent;
+      padding: 7px 13px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    button:active:not(:disabled) {
+      background: var(--accent-active);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    button.btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+
+    button.btn-secondary:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+
+    button.btn-danger {
+      background: var(--status-dead-bg);
+      color: var(--status-dead-fg);
+      border-color: var(--status-dead-bd);
+    }
+
+    button.btn-danger:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.24);
+    }
+
+    button.btn-sm {
+      padding: 4px 9px;
+      font-size: 0.75rem;
+    }
+
+    /* Main Workspace Container */
+    .workspace {
+      flex: 1;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 24px 48px;
+    }
+
+    /* Auth Gate Banner when unauthenticated */
+    .auth-gate {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 28px 32px;
+      max-width: 560px;
+      margin: 40px auto;
+      box-shadow: var(--shadow-md);
+    }
+
+    .auth-gate h1 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .auth-gate p {
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      margin-bottom: 18px;
+      max-width: 65ch;
+    }
+
+    .auth-gate-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    /* Panels */
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    /* Events Master-Detail Split Layout */
+    .events-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .events-split.has-inspector {
+      grid-template-columns: minmax(0, 1.35fr) minmax(380px, 0.95fr);
+    }
+
+    @media (max-width: 1120px) {
+      .events-split.has-inspector {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .surface-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .surface-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .surface-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .surface-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .filter-toolbar {
+      padding: 12px 18px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .filter-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-field-sm {
+      width: 180px;
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      background: rgba(15, 22, 36, 0.6);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 120ms ease;
+    }
+
+    tbody tr:hover {
+      background: var(--bg-hover);
+    }
+
+    tbody tr.selected-row {
+      background: var(--bg-selected);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .num-col {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    /* Semantic Status Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1.3;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .status-delivered {
+      background: var(--status-delivered-bg);
+      color: var(--status-delivered-fg);
+      border-color: var(--status-delivered-bd);
+    }
+    .status-pending {
+      background: var(--status-pending-bg);
+      color: var(--status-pending-fg);
+      border-color: var(--status-pending-bd);
+    }
+    .status-retrying {
+      background: var(--status-retrying-bg);
+      color: var(--status-retrying-fg);
+      border-color: var(--status-retrying-bd);
+    }
+    .status-dead_letter {
+      background: var(--status-dead-bg);
+      color: var(--status-dead-fg);
+      border-color: var(--status-dead-bd);
+    }
+    .status-unrouted {
+      background: var(--status-unrouted-bg);
+      color: var(--status-unrouted-fg);
+      border-color: var(--status-unrouted-bd);
+    }
+
+    /* Right-hand Inspector Pane */
+    .inspector-pane {
+      position: sticky;
+      top: 72px;
+    }
+
+    .inspector-body {
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .inspector-section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+
+    .meta-item-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .meta-item-value {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      word-break: break-all;
+      margin-top: 2px;
+    }
+
+    .delivery-item {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .delivery-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .attempt-row {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      margin-bottom: 8px;
+    }
+
+    .attempt-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .attempt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    pre.payload-viewer {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      max-height: 280px;
+    }
+
+    /* Form Grid inside CRUD views */
+    .crud-layout {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .crud-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-stack {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Instructive Empty States */
+    .empty-state {
+      padding: 36px 24px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .empty-state h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .empty-state p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      max-width: 54ch;
+      margin: 0 auto 14px;
+    }
+
+    /* Toast Feedback */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-md);
+      font-size: 0.8125rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 100;
+    }
+
+    .toast.toast-error {
+      border-color: var(--status-dead-bd);
+      color: var(--status-dead-fg);
+    }
+
+    .svg-icon {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-group">
+      <div class="brand-mark" aria-hidden="true">
+        <svg class="svg-icon" viewBox="0 0 24 24">
+          <path d="M4 12h6l3-7 4 14 3-7h0" />
+        </svg>
+      </div>
+      <span class="brand-title">Wompi Webhook Gateway</span>
+      <span class="brand-subtitle">Multi-Company Ingress &amp; Retry Router</span>
+    </div>
+
+    <div class="auth-controls">
+      <form id="topAuthForm" class="auth-inline-form" onsubmit="event.preventDefault(); loginSession('apiKeyInput');">
+        <label for="apiKeyInput" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Admin API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="Admin API Key..." style="width: 210px;" autocomplete="current-password" />
+        <button type="submit" id="topSignInBtn">Sign In</button>
+      </form>
+
+      <div id="sessionBar" style="display: none; align-items: center; gap: 10px;">
+        <span class="session-indicator" title="Authenticated via HMAC-signed HttpOnly SameSite=Strict cookie">
+          <span class="status-dot"></span>
+          Session Active
+        </span>
+        <button type="button" class="btn-secondary btn-sm" onclick="refreshAll()" id="refreshBtn">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+          Refresh
+        </button>
+        <button type="button" class="btn-danger btn-sm" onclick="logoutSession()">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="subbar" id="subbarNav" style="display: none;">
+    <nav class="nav-tabs" aria-label="Gateway sections">
+      <button type="button" class="nav-tab active" onclick="switchTab('events', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+        Webhook Stream
+      </button>
+      <button type="button" class="nav-tab" onclick="switchTab('routes', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 3v12m0 0a3 3 0 1 0 3 3M6 15a3 3 0 1 1-3 3m15-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0v3a3 3 0 0 1-3 3H9"/></svg>
+        Prefix Routes
+      </button>
+      <button type="button" class="nav-tab" onclick="switchTab('accounts', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 7a2 2 0 0 1 2 2m4 0a6 6 0 0 1-7.74 5.74L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.59a1 1 0 0 1 .29-.7l5.96-5.96A6 6 0 1 1 21 9Z"/></svg>
+        Wompi Accounts
+      </button>
+      <button type="button" class="nav-tab" onclick="switchTab('companies', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18m6 0V11l-6-4"/></svg>
+        Companies
+      </button>
+    </nav>
+
+    <div class="telemetry-strip" role="region" aria-label="Delivery status filters">
+      <button type="button" class="metric-pill active-filter" data-status="" onclick="filterByStatusPill('', this)" title="Show all webhook events">
+        <span>Total</span>
+        <span class="metric-count" id="st-total">0</span>
+      </button>
+      <button type="button" class="metric-pill" data-status="delivered" onclick="filterByStatusPill('delivered', this)" title="Filter by delivered webhooks">
+        <span class="status-dot" style="color: var(--status-delivered-fg)"></span>
+        <span>Delivered</span>
+        <span class="metric-count" id="st-delivered">0</span>
+      </button>
+      <button type="button" class="metric-pill" data-status="pending" onclick="filterByStatusPill('pending', this)" title="Filter by pending webhooks">
+        <span class="status-dot" style="color: var(--status-pending-fg)"></span>
+        <span>Pending</span>
+        <span class="metric-count" id="st-pending">0</span>
+      </button>
+      <button type="button" class="metric-pill" data-status="retrying" onclick="filterByStatusPill('retrying', this)" title="Filter by retrying webhooks">
+        <span class="status-dot" style="color: var(--status-retrying-fg)"></span>
+        <span>Retrying</span>
+        <span class="metric-count" id="st-retrying">0</span>
+      </button>
+      <button type="button" class="metric-pill" data-status="dead_letter" onclick="filterByStatusPill('dead_letter', this)" title="Filter by dead-letter webhooks">
+        <span class="status-dot" style="color: var(--status-dead-fg)"></span>
+        <span>Dead Letter</span>
+        <span class="metric-count" id="st-dead">0</span>
+      </button>
+      <button type="button" class="metric-pill" data-status="unrouted" onclick="filterByStatusPill('unrouted', this)" title="Filter by unrouted webhooks">
+        <span class="status-dot" style="color: var(--status-unrouted-fg)"></span>
+        <span>Unrouted</span>
+        <span class="metric-count" id="st-unrouted">0</span>
+      </button>
+    </div>
+  </div>
+
+  <main class="workspace">
+    <!-- LOCKED AUTH GATE -->
+    <section id="authGateSection" class="auth-gate">
+      <h1>Authenticate Operations Console</h1>
+      <p>Enter your gateway <code>ADMIN_API_KEY</code> to start an HMAC-signed <code>HttpOnly</code> session. Your key is verified on the server and never stored in browser Web Storage.</p>
+      <form class="auth-gate-row" onsubmit="event.preventDefault(); loginSession('gateKeyInput');">
+        <div style="flex: 1;">
+          <label for="gateKeyInput">Administrator API Key</label>
+          <input type="password" id="gateKeyInput" class="mono-input" placeholder="sk_live_..." autocomplete="current-password" required />
+        </div>
+        <button type="submit" id="gateSignInBtn">Start Session</button>
+      </form>
+    </section>
+
+    <!-- AUTHENTICATED WORKSPACE -->
+    <div id="authenticatedWorkspace" style="display: none;">
+      <!-- 1. WEBHOOK STREAM & INSPECTOR -->
+      <section id="panel-events" class="panel active">
+        <div class="events-split" id="eventsSplitContainer">
+          <div class="surface-box">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">Incoming Webhook Stream</h2>
+                <p class="surface-subtitle">Verified Wompi events routed by transaction reference prefix</p>
+              </div>
+            </div>
+
+            <form class="filter-toolbar" onsubmit="event.preventDefault(); loadEvents();">
+              <div class="filter-field">
+                <label for="filterReference">Reference Prefix or Transaction Reference</label>
+                <input type="text" id="filterReference" class="mono-input" placeholder="e.g. sub-104 or mw-sub-" />
+              </div>
+              <div class="filter-field-sm">
+                <label for="filterStatus">Delivery State</label>
+                <select id="filterStatus" onchange="syncPillsWithSelect()">
+                  <option value="">All States</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="pending">Pending</option>
+                  <option value="retrying">Retrying</option>
+                  <option value="dead_letter">Dead Letter</option>
+                  <option value="unrouted">Unrouted</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-secondary">Filter Stream</button>
+            </form>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Received (Local)</th>
+                    <th>Account</th>
+                    <th>Reference</th>
+                    <th>Tx Status</th>
+                    <th>Amount</th>
+                    <th>Delivery State</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="eventsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Side-by-side Event Inspector -->
+          <aside class="surface-box inspector-pane" id="eventDetailCard" style="display: none;" aria-label="Webhook Event Inspector">
+            <div class="surface-header">
+              <div>
+                <h3 class="surface-title">Event Inspector</h3>
+                <p class="surface-subtitle" id="detailEventId"></p>
+              </div>
+              <button type="button" class="btn-secondary btn-sm" onclick="closeInspector()">Close</button>
+            </div>
+
+            <div class="inspector-body">
+              <div class="meta-grid" id="detailMetaGrid"></div>
+
+              <div>
+                <div class="inspector-section-title">
+                  <span>Target Deliveries</span>
+                </div>
+                <div id="detailDeliveries"></div>
+              </div>
+
+              <div>
+                <div class="inspector-section-title">
+                  <span>HTTP Delivery Attempts</span>
+                </div>
+                <div id="detailAttempts"></div>
+              </div>
+
+              <div>
+                <div class="inspector-section-title">
+                  <span>Raw Signed Wompi Payload</span>
+                  <button type="button" class="btn-secondary btn-sm" onclick="copyRawPayload()">Copy JSON</button>
+                </div>
+                <pre class="payload-viewer" id="detailRawPayload"></pre>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- 2. REFERENCE PREFIX ROUTES -->
+      <section id="panel-routes" class="panel">
+        <div class="crud-layout">
+          <form class="surface-box" onsubmit="event.preventDefault(); createRoute();">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">New Prefix Route Rule</h2>
+                <p class="surface-subtitle">Longest matching prefix wins first, then priority</p>
+              </div>
+            </div>
+            <div class="form-stack">
+              <div>
+                <label for="routeAccountSelect">Wompi Account</label>
+                <select id="routeAccountSelect" required></select>
+              </div>
+              <div>
+                <label for="routeCompanySelect">Destination Company</label>
+                <select id="routeCompanySelect" required></select>
+              </div>
+              <div>
+                <label for="routeName">Rule Label</label>
+                <input type="text" id="routeName" placeholder="e.g. Optimax Subscriptions" required />
+              </div>
+              <div>
+                <label for="routePrefix">Transaction Reference Prefix</label>
+                <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or mw-sub- or *" />
+                <span class="field-hint">Use <code>sub-</code> for Optimax, <code>mw-sub-</code> for Mr. Waiters, or <code>*</code> as fallback.</span>
+              </div>
+              <div>
+                <label for="routeTargetUrl">Destination Webhook URL</label>
+                <input type="url" id="routeTargetUrl" class="mono-input" placeholder="https://api.example.com/webhooks/wompi/" required />
+              </div>
+              <div class="form-row-2">
+                <div>
+                  <label for="routePriority">Priority</label>
+                  <input type="number" id="routePriority" class="num-col" value="10" required />
+                </div>
+                <div>
+                  <label for="routeMaxRetries">Max Retries</label>
+                  <input type="number" id="routeMaxRetries" class="num-col" value="5" min="1" max="20" required />
+                </div>
+              </div>
+              <button type="submit" id="createRouteBtn">Create Route Rule</button>
+            </div>
+          </form>
+
+          <div class="surface-box">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">Active Routing Table</h2>
+                <p class="surface-subtitle">Evaluated in order of prefix specificity and priority</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rule Label</th>
+                    <th>Company</th>
+                    <th>Reference Prefix</th>
+                    <th>Target Webhook URL</th>
+                    <th>Priority</th>
+                    <th>Retries</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="routesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. WOMPI ACCOUNTS -->
+      <section id="panel-accounts" class="panel">
+        <div class="crud-layout">
+          <form class="surface-box" onsubmit="event.preventDefault(); createAccount();">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">Register Wompi Account</h2>
+                <p class="surface-subtitle">Each account generates a dedicated ingress URL</p>
+              </div>
+            </div>
+            <div class="form-stack">
+              <div>
+                <label for="accName">Account Label</label>
+                <input type="text" id="accName" placeholder="e.g. Loducode Main Production" required />
+              </div>
+              <div class="form-row-2">
+                <div>
+                  <label for="accSlug">Ingress URL Slug</label>
+                  <input type="text" id="accSlug" class="mono-input" placeholder="main-prod" required />
+                </div>
+                <div>
+                  <label for="accEnv">Environment</label>
+                  <select id="accEnv">
+                    <option value="prod">Production (prod)</option>
+                    <option value="test">Sandbox (test)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label for="accSecret">Wompi Events Secret</label>
+                <input type="password" id="accSecret" class="mono-input" placeholder="prod_events_..." required />
+                <span class="field-hint">Used to verify <code>X-Event-Checksum</code> in constant time. Redacted after save.</span>
+              </div>
+              <button type="submit" id="createAccountBtn">Register Wompi Account</button>
+            </div>
+          </form>
+
+          <div class="surface-box">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">Configured Wompi Accounts</h2>
+                <p class="surface-subtitle">Copy the Ingress URL into your Wompi Merchant Dashboard</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Account Label</th>
+                    <th>Slug</th>
+                    <th>Env</th>
+                    <th>Webhook Ingress URL</th>
+                    <th>State</th>
+                    <th style="text-align: right;">Copy URL</th>
+                  </tr>
+                </thead>
+                <tbody id="accountsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. COMPANIES -->
+      <section id="panel-companies" class="panel">
+        <div class="crud-layout">
+          <form class="surface-box" onsubmit="event.preventDefault(); createCompany();">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">Register Company / Application</h2>
+                <p class="surface-subtitle">Group downstream webhook destinations by project</p>
+              </div>
+            </div>
+            <div class="form-stack">
+              <div>
+                <label for="compName">Company or Project Name</label>
+                <input type="text" id="compName" placeholder="e.g. Optimax" required />
+              </div>
+              <div>
+                <label for="compSlug">Identifier Slug</label>
+                <input type="text" id="compSlug" class="mono-input" placeholder="optimax" required />
+              </div>
+              <div>
+                <label for="compDesc">Notes / Environment</label>
+                <input type="text" id="compDesc" placeholder="Optical ERP subscription backend" />
+              </div>
+              <button type="submit" id="createCompanyBtn">Register Company</button>
+            </div>
+          </form>
+
+          <div class="surface-box">
+            <div class="surface-header">
+              <div>
+                <h2 class="surface-title">Registered Companies</h2>
+                <p class="surface-subtitle">Downstream applications receiving routed Wompi events</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Company / Project</th>
+                    <th>Slug</th>
+                    <th>Notes</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="companiesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    try { localStorage.removeItem('wompi_gateway_api_key'); } catch (_) {}
+
+    const topAuthForm = document.getElementById('topAuthForm');
+    const sessionBar = document.getElementById('sessionBar');
+    const subbarNav = document.getElementById('subbarNav');
+    const authGateSection = document.getElementById('authGateSection');
+    const authenticatedWorkspace = document.getElementById('authenticatedWorkspace');
+
+    let isAuthenticated = false;
+    let selectedEventId = null;
+    let lastRawPayloadText = '';
+
+    function setAuthenticatedUI(authenticated) {
+      isAuthenticated = authenticated;
+      topAuthForm.style.display = authenticated ? 'none' : 'flex';
+      sessionBar.style.display = authenticated ? 'flex' : 'none';
+      subbarNav.style.display = authenticated ? 'flex' : 'none';
+      authGateSection.style.display = authenticated ? 'none' : 'block';
+      authenticatedWorkspace.style.display = authenticated ? 'block' : 'none';
+    }
+
+    async function loginSession(inputId) {
+      const inputEl = document.getElementById(inputId || 'apiKeyInput');
+      const key = inputEl.value.trim();
+      if (!key) {
+        showToast('Enter your ADMIN_API_KEY to sign in', true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || ('HTTP ' + res.status));
+        }
+        document.getElementById('apiKeyInput').value = '';
+        document.getElementById('gateKeyInput').value = '';
+        setAuthenticatedUI(true);
+        showToast('Session established via HttpOnly cookie');
+        refreshAll();
+      } catch (e) {
+        showToast('Authentication failed: ' + e.message, true);
+      }
+    }
+
+    async function logoutSession() {
+      try {
+        await fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+      } catch (_) {}
+      closeInspector();
+      setAuthenticatedUI(false);
+      showToast('Session closed');
+    }
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = isError ? 'toast toast-error' : 'toast';
+      t.style.display = 'inline-flex';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = Object.assign({
+        'Content-Type': 'application/json'
+      }, options.headers || {});
+      const res = await fetch(path, Object.assign({}, options, {
+        credentials: 'same-origin',
+        headers
+      }));
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setAuthenticatedUI(false);
+      }
+      if (!res.ok) {
+        throw new Error(data.error || ('HTTP ' + res.status));
+      }
+      return data;
+    }
+
+    function switchTab(name, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+      document.getElementById('panel-' + name).classList.add('active');
+      if (btn) btn.classList.add('active');
+    }
+
+    function filterByStatusPill(status, pillBtn) {
+      document.querySelectorAll('.metric-pill').forEach(p => p.classList.remove('active-filter'));
+      if (pillBtn) pillBtn.classList.add('active-filter');
+      document.getElementById('filterStatus').value = status;
+      const eventsTabBtn = document.querySelector('.nav-tab');
+      switchTab('events', eventsTabBtn);
+      loadEvents();
+    }
+
+    function syncPillsWithSelect() {
+      const status = document.getElementById('filterStatus').value;
+      document.querySelectorAll('.metric-pill').forEach(p => {
+        p.classList.toggle('active-filter', p.getAttribute('data-status') === status);
+      });
+    }
+
+    async function loadStats() {
+      try {
+        const s = await apiFetch('/api/v1/stats');
+        document.getElementById('st-total').textContent = s.total_events || 0;
+        document.getElementById('st-delivered').textContent = s.delivered_count || 0;
+        document.getElementById('st-pending').textContent = s.pending_deliveries || 0;
+        document.getElementById('st-retrying').textContent = s.retrying_count || 0;
+        document.getElementById('st-dead').textContent = s.dead_letter_count || 0;
+        document.getElementById('st-unrouted').textContent = s.unrouted_events || 0;
+      } catch (e) {
+        console.warn('Stats error:', e.message);
+      }
+    }
+
+    async function loadCompanies() {
+      const res = await apiFetch('/api/v1/companies');
+      const list = res.data || [];
+      const tbody = document.getElementById('companiesTableBody');
+      const sel = document.getElementById('routeCompanySelect');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4">
+              <div class="empty-state">
+                <h4>No companies registered yet</h4>
+                <p>Register each project or tenant (such as Optimax or Mr. Waiters) on the left so you can assign reference prefix routes to them.</p>
+              </div>
+            </td>
+          </tr>`;
+      } else {
+        tbody.innerHTML = list.map(c => `
+          <tr>
+            <td><strong>${escapeHtml(c.name)}</strong></td>
+            <td><code>${escapeHtml(c.slug)}</code></td>
+            <td style="color: var(--text-secondary);">${escapeHtml(c.description || '—')}</td>
+            <td><span class="status-badge ${c.active ? 'status-delivered' : 'status-dead_letter'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      sel.innerHTML = '<option value="">Select destination company...</option>' +
+        list.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.slug)})</option>`).join('');
+    }
+
+    async function createCompany() {
+      const btn = document.getElementById('createCompanyBtn');
+      btn.disabled = true;
+      try {
+        await apiFetch('/api/v1/companies', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: document.getElementById('compName').value,
+            slug: document.getElementById('compSlug').value,
+            description: document.getElementById('compDesc').value
+          })
+        });
+        document.getElementById('compName').value = '';
+        document.getElementById('compSlug').value = '';
+        document.getElementById('compDesc').value = '';
+        showToast('Company registered');
+        await refreshAll();
+      } catch (e) {
+        showToast(e.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function loadAccounts() {
+      const res = await apiFetch('/api/v1/accounts');
+      const list = res.data || [];
+      const tbody = document.getElementById('accountsTableBody');
+      const sel = document.getElementById('routeAccountSelect');
+      const origin = window.location.origin;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <h4>No Wompi accounts configured</h4>
+                <p>Register a Wompi account with its Events Secret on the left to generate your dedicated webhook ingress endpoint.</p>
+              </div>
+            </td>
+          </tr>`;
+      } else {
+        tbody.innerHTML = list.map(a => {
+          const fullUrl = `${origin}/webhooks/wompi/${a.slug}`;
+          return `
+            <tr>
+              <td><strong>${escapeHtml(a.name)}</strong></td>
+              <td><code>${escapeHtml(a.slug)}</code></td>
+              <td><code>${escapeHtml(a.environment)}</code></td>
+              <td><code>${escapeHtml(fullUrl)}</code></td>
+              <td><span class="status-badge ${a.active ? 'status-delivered' : 'status-dead_letter'}">${a.active ? 'Active' : 'Inactive'}</span></td>
+              <td style="text-align: right;">
+                <button type="button" class="btn-secondary btn-sm" onclick="copyText('${escapeHtml(fullUrl)}', 'Ingress URL copied')">Copy URL</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      sel.innerHTML = '<option value="">Select Wompi account...</option>' +
+        list.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.slug)})</option>`).join('');
+    }
+
+    async function createAccount() {
+      const btn = document.getElementById('createAccountBtn');
+      btn.disabled = true;
+      try {
+        await apiFetch('/api/v1/accounts', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: document.getElementById('accName').value,
+            slug: document.getElementById('accSlug').value,
+            environment: document.getElementById('accEnv').value,
+            events_secret: document.getElementById('accSecret').value
+          })
+        });
+        document.getElementById('accName').value = '';
+        document.getElementById('accSlug').value = '';
+        document.getElementById('accSecret').value = '';
+        showToast('Wompi account registered');
+        await refreshAll();
+      } catch (e) {
+        showToast(e.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function loadRoutes() {
+      const res = await apiFetch('/api/v1/routes');
+      const list = res.data || [];
+      const tbody = document.getElementById('routesTableBody');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <h4>No reference prefix routes defined</h4>
+                <p>Map transaction prefixes like <code>sub-</code> (Optimax) or <code>mw-sub-</code> (Mr. Waiters) to their target webhook endpoints.</p>
+              </div>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td><strong>${escapeHtml(r.name)}</strong></td>
+          <td>${escapeHtml(r.company_name || r.company_id)}</td>
+          <td><code>${escapeHtml(r.reference_prefix || '* (Catch-All)')}</code></td>
+          <td><code>${escapeHtml(r.target_url)}</code></td>
+          <td class="num-col">${r.priority}</td>
+          <td class="num-col">${r.max_retries}</td>
+          <td style="text-align: right;">
+            <button type="button" class="btn-danger btn-sm" onclick="deleteRoute('${r.id}')">Remove</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function createRoute() {
+      const btn = document.getElementById('createRouteBtn');
+      btn.disabled = true;
+      try {
+        await apiFetch('/api/v1/routes', {
+          method: 'POST',
+          body: JSON.stringify({
+            wompi_account_id: document.getElementById('routeAccountSelect').value,
+            company_id: document.getElementById('routeCompanySelect').value,
+            name: document.getElementById('routeName').value,
+            reference_prefix: document.getElementById('routePrefix').value,
+            target_url: document.getElementById('routeTargetUrl').value,
+            priority: parseInt(document.getElementById('routePriority').value || '10', 10),
+            max_retries: parseInt(document.getElementById('routeMaxRetries').value || '5', 10)
+          })
+        });
+        document.getElementById('routeName').value = '';
+        document.getElementById('routePrefix').value = '';
+        document.getElementById('routeTargetUrl').value = '';
+        showToast('Prefix route rule created');
+        await refreshAll();
+      } catch (e) {
+        showToast(e.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteRoute(id) {
+      try {
+        await apiFetch('/api/v1/routes/' + id, { method: 'DELETE' });
+        showToast('Route rule removed');
+        await refreshAll();
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+
+    async function loadEvents() {
+      const ref = encodeURIComponent(document.getElementById('filterReference').value.trim());
+      const st = encodeURIComponent(document.getElementById('filterStatus').value);
+      const res = await apiFetch(`/api/v1/events?reference=${ref}&status=${st}&limit=50`);
+      const list = res.data || [];
+      const tbody = document.getElementById('eventsTableBody');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <h4>No webhook events match the current view</h4>
+                <p>Incoming Wompi notifications sent to <code>POST /webhooks/wompi/:account_slug</code> will appear here with real-time delivery status and retry history.</p>
+              </div>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(ev => {
+        const isSelected = ev.id === selectedEventId;
+        const formattedAmount = ((ev.amount_in_cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `
+          <tr class="${isSelected ? 'selected-row' : ''}" onclick="inspectEvent('${ev.id}')" style="cursor: pointer;">
+            <td class="num-col">${new Date(ev.received_at).toLocaleString()}</td>
+            <td><code>${escapeHtml(ev.account_slug || ev.wompi_account_id)}</code></td>
+            <td><code>${escapeHtml(ev.reference || '—')}</code></td>
+            <td><strong>${escapeHtml(ev.transaction_status || '—')}</strong></td>
+            <td class="num-col">${formattedAmount} ${escapeHtml(ev.currency || '')}</td>
+            <td><span class="status-badge status-${escapeHtml(ev.status)}">${escapeHtml(ev.status)}</span></td>
+            <td style="text-align: right;" onclick="event.stopPropagation();">
+              <button type="button" class="btn-secondary btn-sm" onclick="inspectEvent('${ev.id}')">Inspect</button>
+              ${ev.status === 'unrouted' ? `<button type="button" class="btn-sm" onclick="rerouteEvent('${ev.id}')">Re-Route</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function closeInspector() {
+      selectedEventId = null;
+      document.getElementById('eventDetailCard').style.display = 'none';
+      document.getElementById('eventsSplitContainer').classList.remove('has-inspector');
+      document.querySelectorAll('#eventsTableBody tr').forEach(tr => tr.classList.remove('selected-row'));
+    }
+
+    async function inspectEvent(id) {
+      try {
+        selectedEventId = id;
+        const d = await apiFetch('/api/v1/events/' + id);
+        const ev = d.event;
+
+        document.getElementById('eventsSplitContainer').classList.add('has-inspector');
+        document.getElementById('eventDetailCard').style.display = 'block';
+        document.getElementById('detailEventId').textContent = `${ev.event_type} · ${ev.reference || ev.id}`;
+
+        document.getElementById('detailMetaGrid').innerHTML = `
+          <div>
+            <div class="meta-item-label">Event ID</div>
+            <div class="meta-item-value">${escapeHtml(ev.id)}</div>
+          </div>
+          <div>
+            <div class="meta-item-label">Wompi Transaction ID</div>
+            <div class="meta-item-value">${escapeHtml(ev.transaction_id || '—')}</div>
+          </div>
+          <div>
+            <div class="meta-item-label">Reference</div>
+            <div class="meta-item-value">${escapeHtml(ev.reference || '—')}</div>
+          </div>
+          <div>
+            <div class="meta-item-label">Signature Verification</div>
+            <div class="meta-item-value" style="color: var(--status-delivered-fg);">SHA-256 Verified</div>
+          </div>
+        `;
+
+        lastRawPayloadText = JSON.stringify(ev.raw_payload, null, 2);
+        document.getElementById('detailRawPayload').textContent = lastRawPayloadText;
+
+        const deliveries = d.deliveries || [];
+        if (deliveries.length === 0) {
+          document.getElementById('detailDeliveries').innerHTML = `
+            <div class="delivery-item">
+              <div class="delivery-top">
+                <div>
+                  <strong>Unrouted Event</strong>
+                  <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">No active prefix route matched <code>${escapeHtml(ev.reference || '')}</code> when this event arrived.</p>
+                </div>
+                <button type="button" class="btn-sm" onclick="rerouteEvent('${ev.id}')">Evaluate Routes Now</button>
+              </div>
+            </div>`;
+        } else {
+          document.getElementById('detailDeliveries').innerHTML = deliveries.map(del => `
+            <div class="delivery-item">
+              <div class="delivery-top">
+                <div>
+                  <strong>${escapeHtml(del.company_name || 'Destination')}</strong>
+                  <span class="status-badge status-${escapeHtml(del.status)}" style="margin-left: 6px;">${escapeHtml(del.status)}</span>
+                  <div style="margin-top: 4px;"><code>${escapeHtml(del.target_url)}</code></div>
+                </div>
+                <button type="button" class="btn-sm" onclick="retryDelivery('${del.id}', '${ev.id}')">Retry Now</button>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                <span class="num-col">Attempts: ${del.attempt_count} / ${del.max_retries}</span>
+                ${del.last_error ? `<span style="color: var(--status-dead-fg);">${escapeHtml(del.last_error)}</span>` : ''}
+              </div>
+            </div>
+          `).join('');
+        }
+
+        const attempts = d.attempts || [];
+        if (attempts.length === 0) {
+          document.getElementById('detailAttempts').innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted);">No HTTP delivery attempts recorded yet.</p>`;
+        } else {
+          document.getElementById('detailAttempts').innerHTML = attempts.map(a => `
+            <div class="attempt-row">
+              <div class="attempt-header">
+                <span class="num-col"><strong>Attempt #${a.attempt_number}</strong> · HTTP <code>${a.status_code || 'ERR'}</code> · ${a.duration_ms}ms</span>
+                <span style="color: ${a.success ? 'var(--status-delivered-fg)' : 'var(--status-dead-fg)'}; font-weight: 600;">
+                  ${a.success ? '2xx OK' : escapeHtml(a.error_message || 'Failed')}
+                </span>
+              </div>
+              ${a.response_body ? `<div style="margin-top: 4px; color: var(--text-muted); word-break: break-all;">Response: <code>${escapeHtml(a.response_body)}</code></div>` : ''}
+            </div>
+          `).join('');
+        }
+
+        loadEvents();
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+
+    async function retryDelivery(deliveryId, eventId) {
+      try {
+        await apiFetch('/api/v1/deliveries/' + deliveryId + '/retry', { method: 'POST' });
+        showToast('Delivery queued for immediate dispatch');
+        setTimeout(() => { refreshAll(); inspectEvent(eventId); }, 450);
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+
+    async function rerouteEvent(eventId) {
+      try {
+        await apiFetch('/api/v1/events/' + eventId + '/route', { method: 'POST' });
+        showToast('Event matched to route and queued for delivery');
+        setTimeout(() => { refreshAll(); inspectEvent(eventId); }, 450);
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+
+    function copyText(text, msg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(msg || 'Copied to clipboard'));
+      }
+    }
+
+    function copyRawPayload() {
+      if (lastRawPayloadText) {
+        copyText(lastRawPayloadText, 'Raw JSON payload copied');
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function refreshAll() {
+      if (!isAuthenticated) return;
+      await Promise.all([loadStats(), loadCompanies(), loadAccounts(), loadRoutes(), loadEvents()]);
+    }
+
+    async function checkExistingSession() {
+      try {
+        await apiFetch('/api/v1/auth/me');
+        setAuthenticatedUI(true);
+        refreshAll();
+      } catch (_) {
+        setAuthenticatedUI(false);
+      }
+    }
+
+    checkExistingSession();
+  </script>
+</body>
+</html>
