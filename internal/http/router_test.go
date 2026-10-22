@@ -335,3 +335,117 @@ func TestAdminAuth_HttpOnlySessionCookie(t *testing.T) {
 		t.Errorf("expected logout to clear cookie with MaxAge < 0, got %+v", clearedCookie)
 	}
 }
+
+func TestUpdateEntities_CompaniesAccountsAndRoutes(t *testing.T) {
+	repo := memory.New()
+	disp := dispatcher.New(repo, dispatcher.Config{})
+	adminKey := "test-super-secret-admin-key"
+	router := NewRouter(repo, disp, adminKey, "test")
+
+	adminDo := func(method, path string, body any) *httptest.ResponseRecorder {
+		var bodyReader io.Reader
+		if body != nil {
+			b, _ := json.Marshal(body)
+			bodyReader = bytes.NewReader(b)
+		}
+		req := httptest.NewRequest(method, path, bodyReader)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-API-Key", adminKey)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec
+	}
+
+	// 1. Create and Update Company
+	createCompRec := adminDo(http.MethodPost, "/api/v1/companies", map[string]any{
+		"name":        "Optimax",
+		"slug":        "optimax",
+		"description": "Initial description",
+	})
+	if createCompRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for company, got %d", createCompRec.Code)
+	}
+	var comp domain.Company
+	_ = json.Unmarshal(createCompRec.Body.Bytes(), &comp)
+
+	updateCompRec := adminDo(http.MethodPatch, "/api/v1/companies/"+comp.ID, map[string]any{
+		"name":        "Optimax ERP",
+		"slug":        "optimax-erp",
+		"description": "Updated description",
+		"active":      false,
+	})
+	if updateCompRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK when updating company, got %d: %s", updateCompRec.Code, updateCompRec.Body.String())
+	}
+	var updatedComp domain.Company
+	_ = json.Unmarshal(updateCompRec.Body.Bytes(), &updatedComp)
+	if updatedComp.Name != "Optimax ERP" || updatedComp.Slug != "optimax-erp" || updatedComp.Active != false {
+		t.Errorf("unexpected updated company: %+v", updatedComp)
+	}
+
+	// 2. Create and Update Wompi Account (preserving secret when omitted)
+	createAccRec := adminDo(http.MethodPost, "/api/v1/accounts", map[string]any{
+		"name":          "Wompi Prod",
+		"slug":          "wompi-prod",
+		"environment":   "prod",
+		"events_secret": "secret_123",
+	})
+	if createAccRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for account, got %d", createAccRec.Code)
+	}
+	var acc domain.WompiAccount
+	_ = json.Unmarshal(createAccRec.Body.Bytes(), &acc)
+
+	updateAccRec := adminDo(http.MethodPatch, "/api/v1/accounts/"+acc.ID, map[string]any{
+		"name":        "Wompi Sandbox",
+		"slug":        "wompi-sandbox",
+		"environment": "test",
+		"active":      true,
+	})
+	if updateAccRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK when updating account without secret, got %d: %s", updateAccRec.Code, updateAccRec.Body.String())
+	}
+	storedAcc, err := repo.GetWompiAccountByID(context.Background(), acc.ID)
+	if err != nil || storedAcc.EventsSecret != "secret_123" || storedAcc.Slug != "wompi-sandbox" {
+		t.Errorf("expected events_secret to be preserved and slug updated, got %+v (err=%v)", storedAcc, err)
+	}
+
+	// 3. Create and Update Route Rule
+	createRouteRec := adminDo(http.MethodPost, "/api/v1/routes", map[string]any{
+		"wompi_account_id": acc.ID,
+		"company_id":       comp.ID,
+		"name":             "Optimax Route",
+		"reference_prefix": "sub-",
+		"target_url":       "https://api.optimax.co/webhooks/wompi",
+		"priority":         10,
+		"max_retries":      5,
+	})
+	if createRouteRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for route, got %d: %s", createRouteRec.Code, createRouteRec.Body.String())
+	}
+	var route domain.RouteRule
+	_ = json.Unmarshal(createRouteRec.Body.Bytes(), &route)
+
+	updateRouteRec := adminDo(http.MethodPut, "/api/v1/routes/"+route.ID, map[string]any{
+		"name":             "Optimax Updated Route",
+		"reference_prefix": "opt-sub-",
+		"target_url":       "https://api2.optimax.co/webhooks/wompi",
+		"priority":         25,
+		"max_retries":      8,
+		"timeout_seconds":  30,
+		"active":           false,
+	})
+	if updateRouteRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK when updating route, got %d: %s", updateRouteRec.Code, updateRouteRec.Body.String())
+	}
+	var updatedRoute domain.RouteRule
+	_ = json.Unmarshal(updateRouteRec.Body.Bytes(), &updatedRoute)
+	if updatedRoute.Name != "Optimax Updated Route" ||
+		updatedRoute.ReferencePrefix != "opt-sub-" ||
+		updatedRoute.Priority != 25 ||
+		updatedRoute.MaxRetries != 8 ||
+		updatedRoute.TimeoutSeconds != 30 ||
+		updatedRoute.Active != false {
+		t.Errorf("unexpected updated route: %+v", updatedRoute)
+	}
+}
