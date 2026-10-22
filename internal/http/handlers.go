@@ -475,7 +475,7 @@ func (h *Handler) CreateRoute(c *gin.Context) {
 		WompiAccountID:  strings.TrimSpace(req.WompiAccountID),
 		CompanyID:       strings.TrimSpace(req.CompanyID),
 		Name:            strings.TrimSpace(req.Name),
-		ReferencePrefix: strings.TrimSpace(req.ReferencePrefix),
+		ReferencePrefix: dispatcher.NormalizePrefixString(req.ReferencePrefix),
 		TargetURL:       strings.TrimSpace(req.TargetURL),
 		CustomHeaders:   req.CustomHeaders,
 		MaxRetries:      maxRetries,
@@ -533,7 +533,7 @@ func (h *Handler) UpdateRoute(c *gin.Context) {
 		rule.Name = strings.TrimSpace(*req.Name)
 	}
 	if req.ReferencePrefix != nil {
-		rule.ReferencePrefix = strings.TrimSpace(*req.ReferencePrefix)
+		rule.ReferencePrefix = dispatcher.NormalizePrefixString(*req.ReferencePrefix)
 	}
 	if req.TargetURL != nil {
 		rule.TargetURL = strings.TrimSpace(*req.TargetURL)

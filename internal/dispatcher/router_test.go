@@ -113,3 +113,69 @@ func TestMatchRoute_NoMatchWithoutFallback(t *testing.T) {
 		t.Fatalf("expected nil match, got %+v", matched)
 	}
 }
+
+func TestMatchRoute_MultiPrefixDomiRule(t *testing.T) {
+	rules := []*domain.RouteRule{
+		{
+			ID:              "rule-optimax",
+			CompanyID:       "comp-optimax",
+			Name:            "Optimax Subscriptions",
+			ReferencePrefix: "sub-",
+			TargetURL:       "https://opticode.loducode.com/suscripciones/wompi/eventos/",
+			Priority:        10,
+			Active:          true,
+		},
+		{
+			ID:              "rule-domi",
+			CompanyID:       "comp-domi",
+			Name:            "Domi Payments (Orders, Subscriptions, Wallet Topups)",
+			ReferencePrefix: "order|, sub|, topup|",
+			TargetURL:       "https://domi.loducode.com/api/wompi/webhook",
+			Priority:        10,
+			Active:          true,
+		},
+	}
+
+	cases := []struct {
+		name      string
+		reference string
+		expected  string
+	}{
+		{
+			name:      "Domi order pipe prefix",
+			reference: "order|98123|573001112233|sess-abc",
+			expected:  "rule-domi",
+		},
+		{
+			name:      "Domi subscription pipe prefix does not collide with Optimax sub- hyphen prefix",
+			reference: "sub|pay_774123",
+			expected:  "rule-domi",
+		},
+		{
+			name:      "Domi wallet topup pipe prefix",
+			reference: "topup|intent_55129",
+			expected:  "rule-domi",
+		},
+		{
+			name:      "Optimax sub- hyphen prefix still routes to Optimax",
+			reference: "sub-01a06d77e6",
+			expected:  "rule-optimax",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			matched := MatchRoute(tc.reference, rules)
+			if matched == nil {
+				t.Fatalf("expected %s, got nil", tc.expected)
+			}
+			if matched.ID != tc.expected {
+				t.Errorf("expected %s, got %s", tc.expected, matched.ID)
+			}
+		})
+	}
+
+	if got := NormalizePrefixString("  order| , sub| , topup| , sub| "); got != "order|, sub|, topup|" {
+		t.Errorf("unexpected NormalizePrefixString output: %q", got)
+	}
+}

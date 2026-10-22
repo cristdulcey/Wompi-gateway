@@ -1141,9 +1141,9 @@
           </div>
         </div>
         <div>
-          <label for="routePrefix">Transaction Reference Prefix</label>
-          <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or mw-sub- or *" />
-          <span class="field-hint">Use <code>sub-</code> for Optimax, <code>mw-sub-</code> for Mr. Waiters, or <code>*</code> as fallback.</span>
+          <label for="routePrefix">Transaction Reference Prefix(es)</label>
+          <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or order|, sub|, topup| or *" />
+          <span class="field-hint">Separate multiple prefixes with commas (e.g. <code>order|, sub|, topup|</code> for Domi, <code>sub-</code> for Optimax, or <code>*</code> as fallback).</span>
         </div>
         <div>
           <label for="routeTargetUrl">Destination Webhook URL</label>
@@ -1622,6 +1622,20 @@
       }
     }
 
+    function renderPrefixBadges(rawPrefix) {
+      const trimmed = (rawPrefix || '').trim();
+      if (!trimmed || trimmed === '*') {
+        return '<code>* (Catch-All)</code>';
+      }
+      const tokens = trimmed.split(',').map(t => t.trim()).filter(Boolean);
+      if (tokens.length === 0) {
+        return '<code>* (Catch-All)</code>';
+      }
+      return '<div style="display: inline-flex; flex-wrap: wrap; gap: 4px;">' +
+        tokens.map(t => `<code>${escapeHtml(t)}</code>`).join('') +
+        '</div>';
+    }
+
     async function loadRoutes() {
       const res = await apiFetch('/api/v1/routes');
       const list = res.data || [];
@@ -1634,7 +1648,7 @@
             <td colspan="9">
               <div class="empty-state">
                 <h4>No reference prefix routes defined</h4>
-                <p>Map transaction prefixes like <code>sub-</code> (Optimax) or <code>mw-sub-</code> (Mr. Waiters) to their target webhook endpoints.</p>
+                <p>Map transaction prefixes like <code>sub-</code> (Optimax) or <code>order|, sub|, topup|</code> (Domi) to their target webhook endpoints.</p>
                 <button type="button" onclick="openRouteModal()">New Route Rule</button>
               </div>
             </td>
@@ -1650,7 +1664,7 @@
             <td><strong>${escapeHtml(r.name)}</strong></td>
             <td><code>${escapeHtml(accLabel)}</code></td>
             <td>${escapeHtml(r.company_name || r.company_id)}</td>
-            <td><code>${escapeHtml(r.reference_prefix || '* (Catch-All)')}</code></td>
+            <td>${renderPrefixBadges(r.reference_prefix)}</td>
             <td><code>${escapeHtml(r.target_url)}</code></td>
             <td class="num-col">${r.priority}</td>
             <td class="num-col">${r.max_retries} / ${r.timeout_seconds || 15}s</td>
