@@ -1,4 +1,4 @@
-name: CI/CD — Build, Push & Deploy
+name: CI/CD — Build & Push to Docker Hub
 
 on:
   push:
@@ -106,7 +106,7 @@ jobs:
     needs: dockerhub
     if: >-
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (vars.VPS_HOST != '' || secrets.VPS_HOST != '')
+      vars.VPS_HOST != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -115,10 +115,10 @@ jobs:
 
       - name: Deploy new image over SSH
         env:
-          VPS_HOST: ${{ secrets.VPS_HOST || vars.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER || vars.VPS_USER }}
-          VPS_PORT: ${{ secrets.VPS_PORT || vars.VPS_PORT || '22' }}
-          VPS_PATH: ${{ secrets.VPS_PATH || vars.VPS_PATH }}
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+          VPS_PORT: ${{ vars.VPS_PORT || '22' }}
+          VPS_PATH: ${{ vars.VPS_PATH || secrets.VPS_PATH }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           DOCKER_IMAGE: ${{ needs.dockerhub.outputs.image }}
