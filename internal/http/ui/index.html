@@ -1435,8 +1435,8 @@
         </div>
         <div>
           <label for="routePrefix">Transaction Reference Prefix(es)</label>
-          <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or order|, sub|, topup| or *" />
-          <span class="field-hint">Separate multiple prefixes with commas (e.g. <code>order|, sub|, topup|</code> for Domi, <code>sub-</code> for Optimax, or <code>*</code> as fallback).</span>
+          <input type="text" id="routePrefix" class="mono-input" placeholder="sub- or order|, sub|, topup| or st-, * or *" />
+          <span class="field-hint">Separate multiple prefixes with commas (e.g. <code>order|, sub|, topup|</code> for Domi, <code>st-, *</code> for specific prefix + legacy fallback, or <code>*</code>).</span>
         </div>
         <div>
           <label for="routeTargetUrl">Destination Webhook URL</label>
@@ -1925,7 +1925,7 @@
         return '<code>* (Catch-All)</code>';
       }
       return '<div style="display: inline-flex; flex-wrap: wrap; gap: 4px;">' +
-        tokens.map(t => `<code>${escapeHtml(t)}</code>`).join('') +
+        tokens.map(t => t === '*' ? '<code>* (Catch-All)</code>' : `<code>${escapeHtml(t)}</code>`).join('') +
         '</div>';
     }
 

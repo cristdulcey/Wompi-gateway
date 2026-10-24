@@ -7,40 +7,56 @@ import (
 	"github.com/loducode/wompi-gateway/internal/domain"
 )
 
-// ParsePrefixes splits a comma-separated ReferencePrefix string into individual trimmed prefixes.
-// An empty string or "*" returns nil (indicating a catch-all fallback rule).
-func ParsePrefixes(raw string) []string {
+// ParsePrefixConfig splits a ReferencePrefix string into specific non-wildcard prefixes
+// and reports whether a wildcard fallback ("*" or empty) was included.
+func ParsePrefixConfig(raw string) (prefixes []string, hasFallback bool) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" || trimmed == "*" {
-		return nil
+		return nil, true
 	}
 	parts := strings.Split(trimmed, ",")
-	out := make([]string, 0, len(parts))
 	seen := make(map[string]struct{}, len(parts))
 	for _, p := range parts {
 		token := strings.TrimSpace(p)
-		if token == "" || token == "*" {
+		if token == "" {
+			continue
+		}
+		if token == "*" {
+			hasFallback = true
 			continue
 		}
 		if _, exists := seen[token]; !exists {
 			seen[token] = struct{}{}
-			out = append(out, token)
+			prefixes = append(prefixes, token)
 		}
 	}
-	return out
+	if len(prefixes) == 0 && !hasFallback {
+		return nil, true
+	}
+	return prefixes, hasFallback
 }
 
-// NormalizePrefixString formats a single or comma-separated prefix string consistently (e.g. "order|, sub|, topup|").
+// ParsePrefixes splits a comma-separated ReferencePrefix string into individual trimmed prefixes.
+// An empty string or "*" returns nil (indicating a catch-all fallback rule).
+func ParsePrefixes(raw string) []string {
+	prefixes, _ := ParsePrefixConfig(raw)
+	return prefixes
+}
+
+// NormalizePrefixString formats a single or comma-separated prefix string consistently (e.g. "order|, sub|, topup|" or "st-, *").
 func NormalizePrefixString(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" || trimmed == "*" {
-		return trimmed
-	}
-	tokens := ParsePrefixes(trimmed)
-	if len(tokens) == 0 {
 		return "*"
 	}
-	return strings.Join(tokens, ", ")
+	prefixes, hasFallback := ParsePrefixConfig(trimmed)
+	if len(prefixes) == 0 {
+		return "*"
+	}
+	if hasFallback {
+		return strings.Join(append(prefixes, "*"), ", ")
+	}
+	return strings.Join(prefixes, ", ")
 }
 
 type matchedRuleCandidate struct {
@@ -51,12 +67,13 @@ type matchedRuleCandidate struct {
 // MatchRoute evaluates a transaction reference against a list of RouteRules and returns the best match.
 // Rules are evaluated as follows:
 //  1. Only Active rules are considered.
-//  2. A rule's ReferencePrefix may contain one prefix ("sub-") or multiple comma-separated prefixes ("order|, sub|, topup|").
+//  2. A rule's ReferencePrefix may contain one prefix ("sub-"), multiple comma-separated prefixes ("order|, sub|, topup|"),
+//     or a hybrid of prefixes and wildcard fallback ("st-, *").
 //  3. Non-empty, non-"*" prefixes that match strings.HasPrefix(reference, prefix) are sorted by:
 //     - longest matched prefix first
 //     - highest Priority first
 //     - deterministic ID tie-breaker
-//  4. If no specific prefix rule matches, fallback catch-all rules (ReferencePrefix == "" or "*")
+//  4. If no specific prefix rule matches, fallback catch-all rules (ReferencePrefix contains "*" or "")
 //     are evaluated ordered by highest Priority first.
 func MatchRoute(reference string, rules []*domain.RouteRule) *domain.RouteRule {
 	if len(rules) == 0 {
@@ -70,10 +87,9 @@ func MatchRoute(reference string, rules []*domain.RouteRule) *domain.RouteRule {
 		if rule == nil || !rule.Active {
 			continue
 		}
-		prefixes := ParsePrefixes(rule.ReferencePrefix)
-		if len(prefixes) == 0 {
+		prefixes, hasFallback := ParsePrefixConfig(rule.ReferencePrefix)
+		if hasFallback {
 			fallbackMatches = append(fallbackMatches, rule)
-			continue
 		}
 
 		bestLen := -1
