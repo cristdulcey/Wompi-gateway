@@ -179,3 +179,67 @@ func TestMatchRoute_MultiPrefixDomiRule(t *testing.T) {
 		t.Errorf("unexpected NormalizePrefixString output: %q", got)
 	}
 }
+
+func TestMatchRoute_HybridPrefixAndWildcardFallback(t *testing.T) {
+	rules := []*domain.RouteRule{
+		{
+			ID:              "rule-santelellano",
+			CompanyID:       "comp-santelellano",
+			Name:            "Santelellano Hybrid Rule",
+			ReferencePrefix: "st-, *",
+			TargetURL:       "https://santelellano.example.com/webhook",
+			Priority:        10,
+			Active:          true,
+		},
+		{
+			ID:              "rule-optimax",
+			CompanyID:       "comp-optimax",
+			Name:            "Optimax Subscriptions",
+			ReferencePrefix: "sub-",
+			TargetURL:       "https://opticode.example.com/webhook",
+			Priority:        10,
+			Active:          true,
+		},
+	}
+
+	cases := []struct {
+		name      string
+		reference string
+		expected  string
+	}{
+		{
+			name:      "Matches specific st- prefix for Santelellano",
+			reference: "st-order-4819",
+			expected:  "rule-santelellano",
+		},
+		{
+			name:      "Optimax sub- specific prefix still beats Santelellano wildcard fallback",
+			reference: "sub-tx-99120",
+			expected:  "rule-optimax",
+		},
+		{
+			name:      "Legacy UUID reference without prefix matches Santelellano via wildcard fallback",
+			reference: "550e8400-e29b-41d4-a716-446655440000",
+			expected:  "rule-santelellano",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			matched := MatchRoute(tc.reference, rules)
+			if matched == nil {
+				t.Fatalf("expected %s, got nil", tc.expected)
+			}
+			if matched.ID != tc.expected {
+				t.Errorf("expected %s, got %s", tc.expected, matched.ID)
+			}
+		})
+	}
+
+	if got := NormalizePrefixString(" st- , * "); got != "st-, *" {
+		t.Errorf("unexpected NormalizePrefixString for st-, *: %q", got)
+	}
+	if got := NormalizePrefixString(" *, st- "); got != "st-, *" {
+		t.Errorf("unexpected NormalizePrefixString for *, st-: %q", got)
+	}
+}
