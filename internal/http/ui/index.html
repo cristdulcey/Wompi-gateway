@@ -4,8 +4,75 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Wompi Webhook Gateway — Operations Console</title>
+  <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('wompi_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
   <style>
     :root {
+      color-scheme: light;
+
+      --bg-canvas: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-elevated: #f1f5f9;
+      --bg-subtle: #f8fafc;
+      --bg-hover: #e2e8f0;
+      --bg-selected: #e0e7ff;
+      --bg-input: #ffffff;
+
+      --border-subtle: #e2e8f0;
+      --border-default: #cbd5e1;
+      --border-strong: #94a3b8;
+
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #475569;
+
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-active: #1e40af;
+      --accent-tint: rgba(37, 99, 235, 0.08);
+      --brand-mark-border: rgba(37, 99, 235, 0.25);
+
+      --status-delivered-fg: #047857;
+      --status-delivered-bg: #ecfdf5;
+      --status-delivered-bd: #a7f3d0;
+
+      --status-pending-fg: #1d4ed8;
+      --status-pending-bg: #eff6ff;
+      --status-pending-bd: #bfdbfe;
+
+      --status-retrying-fg: #b45309;
+      --status-retrying-bg: #fffbeb;
+      --status-retrying-bd: #fde68a;
+
+      --status-dead-fg: #b91c1c;
+      --status-dead-bg: #fef2f2;
+      --status-dead-bd: #fecaca;
+
+      --status-unrouted-fg: #7e22ce;
+      --status-unrouted-bg: #faf5ff;
+      --status-unrouted-bd: #e9d5ff;
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.12);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --modal-backdrop: rgba(15, 23, 42, 0.5);
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+
       --bg-canvas: #090d16;
       --bg-surface: #0f1624;
       --bg-elevated: #151e31;
@@ -26,6 +93,7 @@
       --accent-hover: #1d4ed8;
       --accent-active: #1e40af;
       --accent-tint: rgba(37, 99, 235, 0.16);
+      --brand-mark-border: rgba(96, 165, 250, 0.35);
 
       --status-delivered-fg: #34d399;
       --status-delivered-bg: rgba(16, 185, 129, 0.14);
@@ -47,13 +115,9 @@
       --status-unrouted-bg: rgba(168, 85, 247, 0.14);
       --status-unrouted-bd: rgba(192, 132, 252, 0.32);
 
-      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
       --shadow-sm: 0 2px 6px rgba(3, 6, 14, 0.45);
       --shadow-md: 0 8px 24px rgba(3, 6, 14, 0.6);
-      --radius-sm: 6px;
-      --radius-md: 8px;
+      --modal-backdrop: rgba(5, 8, 15, 0.76);
     }
 
     * {
@@ -68,7 +132,6 @@
     }
 
     html {
-      color-scheme: dark;
       font-size: 16px;
       -webkit-font-smoothing: antialiased;
     }
@@ -127,11 +190,11 @@
       height: 28px;
       border-radius: var(--radius-sm);
       background: var(--accent-tint);
-      border: 1px solid rgba(96, 165, 250, 0.35);
+      border: 1px solid var(--brand-mark-border);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--status-pending-fg);
+      color: var(--accent);
       flex-shrink: 0;
     }
 
@@ -217,7 +280,7 @@
 
     .nav-tab:hover {
       color: var(--text-primary);
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-hover);
     }
 
     .nav-tab.active {
@@ -337,10 +400,12 @@
 
     button:hover:not(:disabled) {
       background: var(--accent-hover);
+      color: #ffffff;
     }
 
     button:active:not(:disabled) {
       background: var(--accent-active);
+      color: #ffffff;
     }
 
     button:disabled {
@@ -357,6 +422,7 @@
     button.btn-secondary:hover:not(:disabled) {
       background: var(--bg-hover);
       border-color: var(--border-strong);
+      color: var(--text-primary);
     }
 
     button.btn-danger {
@@ -512,7 +578,7 @@
       color: var(--text-muted);
       font-weight: 600;
       font-size: 0.75rem;
-      background: rgba(15, 22, 36, 0.6);
+      background: var(--bg-elevated);
       white-space: nowrap;
     }
 
@@ -703,7 +769,7 @@
     }
 
     dialog.modal-dialog::backdrop {
-      background: rgba(5, 8, 15, 0.76);
+      background: var(--modal-backdrop);
       backdrop-filter: blur(3px);
     }
 
@@ -816,6 +882,60 @@
       stroke-linejoin: round;
       fill: none;
       flex-shrink: 0;
+    }
+
+    /* Theme Toggle Switch */
+    .theme-toggle-btn {
+      min-width: 34px;
+      height: 34px;
+      padding: 0 10px;
+      gap: 6px;
+      font-size: 0.75rem;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    html:not([data-theme="dark"]) .theme-toggle-btn .sun-icon {
+      display: none;
+    }
+    html:not([data-theme="dark"]) .theme-toggle-btn .moon-icon {
+      display: inline-block;
+    }
+    html:not([data-theme="dark"]) .theme-toggle-btn .theme-label::after {
+      content: "Dark";
+    }
+
+    html[data-theme="dark"] .theme-toggle-btn .sun-icon {
+      display: inline-block;
+    }
+    html[data-theme="dark"] .theme-toggle-btn .moon-icon {
+      display: none;
+    }
+    html[data-theme="dark"] .theme-toggle-btn .theme-label::after {
+      content: "Light";
+    }
+
+    @media (max-width: 640px) {
+      .theme-toggle-btn .theme-label {
+        display: none;
+      }
+      .theme-toggle-btn {
+        padding: 0;
+        width: 34px;
+      }
     }
 
     .break-all {
@@ -1125,6 +1245,17 @@
     </div>
 
     <div class="auth-controls">
+      <button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Toggle color theme" title="Toggle Light / Dark mode">
+        <svg class="svg-icon sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="svg-icon moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+        </svg>
+        <span class="theme-label" aria-hidden="true"></span>
+      </button>
+
       <form id="topAuthForm" class="auth-inline-form" onsubmit="event.preventDefault(); loginSession('apiKeyInput');">
         <label for="apiKeyInput" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Admin API Key</label>
         <input type="password" id="apiKeyInput" placeholder="Admin API Key..." style="width: 210px;" autocomplete="current-password" />
@@ -1571,6 +1702,22 @@
     let companiesCache = [];
     let accountsCache = [];
     let routesCache = [];
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('wompi_theme', theme); } catch (_) {}
+      const btn = document.getElementById('themeToggleBtn');
+      if (btn) {
+        btn.setAttribute('title', theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode');
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(next === 'dark' ? 'Dark mode enabled' : 'Light mode enabled');
+    }
 
     function openModal(dialogId, firstInputId) {
       const dlg = document.getElementById(dialogId);
