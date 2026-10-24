@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Wompi Webhook Gateway — Operations Console</title>
   <style>
     :root {
@@ -817,6 +817,299 @@
       fill: none;
       flex-shrink: 0;
     }
+
+    .break-all {
+      word-break: break-all;
+    }
+
+    /* Mobile & Tablet Responsive Optimizations (Impeccable Adapt) */
+    @media (max-width: 768px) {
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+
+      /* 1. Topbar: compact on mobile, hides subtitle, prevents horizontal blowout */
+      .topbar {
+        padding: 0 12px;
+        min-height: 52px;
+        gap: 8px;
+      }
+
+      .brand-title {
+        font-size: 0.875rem;
+      }
+
+      .brand-subtitle {
+        display: none;
+      }
+
+      .auth-controls {
+        gap: 6px;
+      }
+
+      .auth-inline-form input {
+        width: 130px !important;
+        font-size: 0.75rem;
+        padding: 6px 8px;
+      }
+
+      .session-indicator {
+        padding: 3px 8px;
+        font-size: 0.7rem;
+      }
+
+      /* 2. Subbar & Nav: swipeable ribbons without messy multi-row wrap */
+      .subbar {
+        padding: 6px 12px;
+        gap: 8px;
+      }
+
+      .nav-tabs {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 2px;
+      }
+
+      .nav-tabs::-webkit-scrollbar {
+        display: none;
+      }
+
+      .nav-tab {
+        padding: 8px 11px;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+        white-space: nowrap;
+        border-bottom-width: 2px;
+      }
+
+      .telemetry-strip {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 2px 0 6px;
+      }
+
+      .telemetry-strip::-webkit-scrollbar {
+        display: none;
+      }
+
+      .metric-pill {
+        flex-shrink: 0;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+      }
+
+      /* 3. Workspace padding */
+      .workspace {
+        padding: 12px 10px 48px;
+      }
+
+      /* 4. Surface Box & Headers */
+      .surface-header {
+        padding: 12px 14px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .surface-header button {
+        width: 100%;
+        min-height: 40px;
+      }
+
+      /* 5. Filter Toolbar */
+      .filter-toolbar {
+        padding: 12px 14px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .filter-field,
+      .filter-field-sm {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .filter-toolbar button {
+        width: 100%;
+        min-height: 40px;
+      }
+
+      /* 6. Transform bloated tables into responsive mobile cards */
+      .table-wrap {
+        overflow-x: visible;
+        padding: 10px;
+      }
+
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody tr {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        padding: 14px 12px;
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      tbody tr:last-child {
+        margin-bottom: 0;
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 4px 0;
+        border-bottom: 1px dashed var(--border-subtle);
+        font-size: 0.8125rem;
+        gap: 12px;
+      }
+
+      td:last-child {
+        border-bottom: none;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      td.cell-value-right {
+        text-align: right;
+        word-break: break-all;
+      }
+
+      td[data-label="Actions"] {
+        display: flex;
+        justify-content: stretch;
+        align-items: center;
+        padding-top: 10px;
+        margin-top: 4px;
+        border-top: 1px solid var(--border-subtle);
+        border-bottom: none;
+      }
+
+      td[data-label="Actions"]::before {
+        display: none;
+      }
+
+      .action-group {
+        display: flex;
+        width: 100%;
+        gap: 8px;
+      }
+
+      .action-group button {
+        flex: 1;
+        min-height: 40px;
+        font-size: 0.75rem;
+        padding: 8px 10px;
+      }
+
+      /* Empty states inside cards */
+      tbody tr.empty-row {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      td.empty-cell {
+        display: block;
+        border: none;
+        padding: 0;
+      }
+
+      td.empty-cell::before {
+        display: none;
+      }
+
+      /* 7. Inspector on mobile */
+      .inspector-pane {
+        position: static;
+        margin-top: 16px;
+      }
+
+      .meta-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .delivery-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .delivery-top button {
+        width: 100%;
+        min-height: 40px;
+      }
+
+      /* 8. Modals: full touch optimization */
+      dialog.modal-dialog {
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 24px);
+        padding: 16px 14px;
+      }
+
+      .modal-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .modal-footer button {
+        width: 100%;
+        min-height: 42px;
+      }
+
+      /* 9. iOS Safari font size zoom prevention (>= 16px) */
+      input, select, textarea {
+        font-size: 16px;
+      }
+
+      /* 10. Toast positioning */
+      .toast {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 440px) {
+      .session-text {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -841,7 +1134,7 @@
       <div id="sessionBar" style="display: none; align-items: center; gap: 10px;">
         <span class="session-indicator" title="Authenticated via HMAC-signed HttpOnly SameSite=Strict cookie">
           <span class="status-dot"></span>
-          Session Active
+          <span class="session-text">Session Active</span>
         </span>
         <button type="button" class="btn-secondary btn-sm" onclick="refreshAll()" id="refreshBtn">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
@@ -1442,8 +1735,8 @@
 
       if (list.length === 0) {
         tbody.innerHTML = `
-          <tr>
-            <td colspan="5">
+          <tr class="empty-row">
+            <td colspan="5" class="empty-cell">
               <div class="empty-state">
                 <h4>No companies registered yet</h4>
                 <p>Register each project or tenant (such as Optimax or Mr. Waiters) so you can assign reference prefix routes to them.</p>
@@ -1454,11 +1747,11 @@
       } else {
         tbody.innerHTML = list.map(c => `
           <tr>
-            <td><strong>${escapeHtml(c.name)}</strong></td>
-            <td><code>${escapeHtml(c.slug)}</code></td>
-            <td style="color: var(--text-secondary);">${escapeHtml(c.description || '—')}</td>
-            <td><span class="status-badge ${c.active ? 'status-delivered' : 'status-dead_letter'}">${c.active ? 'Active' : 'Inactive'}</span></td>
-            <td style="text-align: right;">
+            <td data-label="Company / Project"><strong>${escapeHtml(c.name)}</strong></td>
+            <td data-label="Slug"><code>${escapeHtml(c.slug)}</code></td>
+            <td data-label="Notes" style="color: var(--text-secondary);">${escapeHtml(c.description || '—')}</td>
+            <td data-label="State"><span class="status-badge ${c.active ? 'status-delivered' : 'status-dead_letter'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+            <td data-label="Actions" style="text-align: right;">
               <div class="action-group">
                 <button type="button" class="btn-secondary btn-sm" onclick="openCompanyModal('${c.id}')">Edit</button>
               </div>
@@ -1526,8 +1819,8 @@
 
       if (list.length === 0) {
         tbody.innerHTML = `
-          <tr>
-            <td colspan="6">
+          <tr class="empty-row">
+            <td colspan="6" class="empty-cell">
               <div class="empty-state">
                 <h4>No Wompi accounts configured</h4>
                 <p>Register a Wompi account with its Events Secret to generate your dedicated webhook ingress endpoint.</p>
@@ -1540,12 +1833,12 @@
           const fullUrl = `${origin}/webhooks/wompi/${a.slug}`;
           return `
             <tr>
-              <td><strong>${escapeHtml(a.name)}</strong></td>
-              <td><code>${escapeHtml(a.slug)}</code></td>
-              <td><code>${escapeHtml(a.environment)}</code></td>
-              <td><code>${escapeHtml(fullUrl)}</code></td>
-              <td><span class="status-badge ${a.active ? 'status-delivered' : 'status-dead_letter'}">${a.active ? 'Active' : 'Inactive'}</span></td>
-              <td style="text-align: right;">
+              <td data-label="Account Label"><strong>${escapeHtml(a.name)}</strong></td>
+              <td data-label="Slug"><code>${escapeHtml(a.slug)}</code></td>
+              <td data-label="Env"><code>${escapeHtml(a.environment)}</code></td>
+              <td data-label="Ingress URL" class="break-all"><code>${escapeHtml(fullUrl)}</code></td>
+              <td data-label="State"><span class="status-badge ${a.active ? 'status-delivered' : 'status-dead_letter'}">${a.active ? 'Active' : 'Inactive'}</span></td>
+              <td data-label="Actions" style="text-align: right;">
                 <div class="action-group">
                   <button type="button" class="btn-secondary btn-sm" onclick="copyText('${escapeHtml(fullUrl)}', 'Ingress URL copied')">Copy URL</button>
                   <button type="button" class="btn-secondary btn-sm" onclick="openAccountModal('${a.id}')">Edit</button>
@@ -1644,8 +1937,8 @@
 
       if (list.length === 0) {
         tbody.innerHTML = `
-          <tr>
-            <td colspan="9">
+          <tr class="empty-row">
+            <td colspan="9" class="empty-cell">
               <div class="empty-state">
                 <h4>No reference prefix routes defined</h4>
                 <p>Map transaction prefixes like <code>sub-</code> (Optimax) or <code>order|, sub|, topup|</code> (Domi) to their target webhook endpoints.</p>
@@ -1661,15 +1954,15 @@
         const accLabel = acc ? `${acc.name} (${acc.slug})` : r.wompi_account_id;
         return `
           <tr>
-            <td><strong>${escapeHtml(r.name)}</strong></td>
-            <td><code>${escapeHtml(accLabel)}</code></td>
-            <td>${escapeHtml(r.company_name || r.company_id)}</td>
-            <td>${renderPrefixBadges(r.reference_prefix)}</td>
-            <td><code>${escapeHtml(r.target_url)}</code></td>
-            <td class="num-col">${r.priority}</td>
-            <td class="num-col">${r.max_retries} / ${r.timeout_seconds || 15}s</td>
-            <td><span class="status-badge ${r.active ? 'status-delivered' : 'status-dead_letter'}">${r.active ? 'Active' : 'Inactive'}</span></td>
-            <td style="text-align: right;">
+            <td data-label="Rule Label"><strong>${escapeHtml(r.name)}</strong></td>
+            <td data-label="Wompi Account"><code>${escapeHtml(accLabel)}</code></td>
+            <td data-label="Company">${escapeHtml(r.company_name || r.company_id)}</td>
+            <td data-label="Prefixes">${renderPrefixBadges(r.reference_prefix)}</td>
+            <td data-label="Target Webhook URL" class="break-all"><code>${escapeHtml(r.target_url)}</code></td>
+            <td data-label="Priority" class="num-col">${r.priority}</td>
+            <td data-label="Retries / Timeout" class="num-col">${r.max_retries} / ${r.timeout_seconds || 15}s</td>
+            <td data-label="State"><span class="status-badge ${r.active ? 'status-delivered' : 'status-dead_letter'}">${r.active ? 'Active' : 'Inactive'}</span></td>
+            <td data-label="Actions" style="text-align: right;">
               <div class="action-group">
                 <button type="button" class="btn-secondary btn-sm" onclick="toggleRouteActive('${r.id}', ${!r.active})">${r.active ? 'Deactivate' : 'Activate'}</button>
                 <button type="button" class="btn-secondary btn-sm" onclick="openRouteModal('${r.id}')">Edit</button>
@@ -1768,8 +2061,8 @@
 
       if (list.length === 0) {
         tbody.innerHTML = `
-          <tr>
-            <td colspan="7">
+          <tr class="empty-row">
+            <td colspan="7" class="empty-cell">
               <div class="empty-state">
                 <h4>No webhook events match the current view</h4>
                 <p>Incoming Wompi notifications sent to <code>POST /webhooks/wompi/:account_slug</code> will appear here with real-time delivery status and retry history.</p>
@@ -1784,15 +2077,17 @@
         const formattedAmount = ((ev.amount_in_cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         return `
           <tr class="${isSelected ? 'selected-row' : ''}" onclick="inspectEvent('${ev.id}')" style="cursor: pointer;">
-            <td class="num-col">${new Date(ev.received_at).toLocaleString()}</td>
-            <td><code>${escapeHtml(ev.account_slug || ev.wompi_account_id)}</code></td>
-            <td><code>${escapeHtml(ev.reference || '—')}</code></td>
-            <td><strong>${escapeHtml(ev.transaction_status || '—')}</strong></td>
-            <td class="num-col">${formattedAmount} ${escapeHtml(ev.currency || '')}</td>
-            <td><span class="status-badge status-${escapeHtml(ev.status)}">${escapeHtml(ev.status)}</span></td>
-            <td style="text-align: right;" onclick="event.stopPropagation();">
-              <button type="button" class="btn-secondary btn-sm" onclick="inspectEvent('${ev.id}')">Inspect</button>
-              ${ev.status === 'unrouted' ? `<button type="button" class="btn-sm" onclick="rerouteEvent('${ev.id}')">Re-Route</button>` : ''}
+            <td data-label="Received" class="num-col">${new Date(ev.received_at).toLocaleString()}</td>
+            <td data-label="Account"><code>${escapeHtml(ev.account_slug || ev.wompi_account_id)}</code></td>
+            <td data-label="Reference"><code>${escapeHtml(ev.reference || '—')}</code></td>
+            <td data-label="Tx Status"><strong>${escapeHtml(ev.transaction_status || '—')}</strong></td>
+            <td data-label="Amount" class="num-col">${formattedAmount} ${escapeHtml(ev.currency || '')}</td>
+            <td data-label="Delivery State"><span class="status-badge status-${escapeHtml(ev.status)}">${escapeHtml(ev.status)}</span></td>
+            <td data-label="Actions" style="text-align: right;" onclick="event.stopPropagation();">
+              <div class="action-group">
+                <button type="button" class="btn-secondary btn-sm" onclick="inspectEvent('${ev.id}')">Inspect</button>
+                ${ev.status === 'unrouted' ? `<button type="button" class="btn-sm" onclick="rerouteEvent('${ev.id}')">Re-Route</button>` : ''}
+              </div>
             </td>
           </tr>
         `;
@@ -1887,6 +2182,12 @@
         }
 
         loadEvents();
+        if (window.innerWidth <= 1120) {
+          const detailCard = document.getElementById('eventDetailCard');
+          if (detailCard) {
+            detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
       } catch (e) {
         showToast(e.message, true);
       }
